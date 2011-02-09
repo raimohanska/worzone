@@ -7,22 +7,10 @@ $(function() {
   var messageQueue = MessageQueue()
   
   // streams
-  var keyMap1 = KeyMap([
-	[38, up],
-	[40, down],
-	[37, left],
-	[39, right]
-  ], 18)        
-  var player1 = Player(1, keyMap1)
+  var player1 = Player(1, KeyMap([[38, up], [40, down], [37, left], [39, right]], 18))
   var man1 = Man(player1, maze, messageQueue, r)
 
-  var keyMap2 = KeyMap([
-	[87, up],
-	[83, down],
-	[65, left],
-	[68, right]
-  ], 70)                    
-  var player2 = Player(2, keyMap2)
+  var player2 = Player(2, KeyMap([[87, up], [83, down], [65, left], [68, right]], 70))
   var man2 = Man(player2, maze, messageQueue, r)                             
 
   var targets = Targets([man1, man2], messageQueue)
