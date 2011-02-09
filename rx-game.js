@@ -71,7 +71,7 @@ function Bullet(startPos, velocity, maze, targets, messageQueue, r) {
 	var collision = unlimitedPosition.Where(function(pos) { return !maze.isAccessible(pos, radius, radius) }).Take(1)   
 	var hit = unlimitedPosition.Where(function(pos) { return targets.hit(pos) }).Select(function(pos) {
 		return { message : "hit", target : targets.hit(pos).id}
-	})
+	}).Take(1)
 	var hitOrCollision = collision.Merge(hit)
 	var position = unlimitedPosition.TakeUntil(hitOrCollision)
 	
