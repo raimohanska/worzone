@@ -66,7 +66,7 @@ function Man(startPos, keyMap, fireKey, maze, messageQueue, r) {
   var hit = messageQueue.ofType("hit").Where(function(hit) { 
 	return hit.target == man
   })
-  var direction = Keyboard().multiKeyState(keyMap).Where(atMostOne).Select(first)
+  var direction = Keyboard().multiKeyState(keyMap).TakeUntil(hit).Where(atMostOne).Select(first)
   var latestDirection = direction.Where(identity).StartWith(left)
   var movements = ticker.CombineLatest(direction, latter).Where(identity)
   var position = movements.Scan(startPos, function(pos, move) { 
@@ -88,7 +88,8 @@ function Man(startPos, keyMap, fireKey, maze, messageQueue, r) {
 	man.rotate(angle, true)
 	man.attr({src : basename + (state.anim) + ".png"})
   })               
-  hit.Subscribe(function() {
+  hit.Subscribe(function() {     
+	console.log("SHIT! I'M DEAD")
 	man.attr({src : "explosion.png"})
   })                            
 
@@ -132,9 +133,11 @@ function MessageQueue() {
     var observers = []
     var asObservable =  Rx.Observable.Create(function(observer) { 
         observers.push(observer)
+		return function() { observers.splice(observers.indexOf(observer), 1)}
     })
-    function push(message) {
+    function push(message) {  	
         observers.forEach(function(observer) {
+	        //console.log("broadcast : " + message.message)
             observer.OnNext(message)
         });
     }
@@ -227,7 +230,10 @@ function concatArrays(a1, a2) { return toArray(a1).concat(toArray(a2)) }
 function combineLatestAsArray(streams) {   
 	return combineWith(streams, function(s1, s2) { return s1.CombineLatest(s2, concatArrays)})  
 }
-var ticker = Rx.Observable.Create(function(observer) { setInterval(observer.OnNext, delay) })
+var ticker = Rx.Observable.Create(function(observer) { 
+	var id = setInterval(observer.OnNext, delay) 
+	return function() { clearInterval(id) }
+})
 function always(value) { return function(_) { return value } }
 function atMostOne(array) { return array.length <= 1 }
 function print(x) { console.log(x) }
