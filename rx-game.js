@@ -13,14 +13,13 @@ $(function() {
   var player2 = Player(2, KeyMap([[87, up], [83, down], [65, left], [68, right]], 70))
   var man2 = Man(player2, maze, messageQueue, r)                             
 
-
   messageQueue.ofType("fire").Subscribe(function(state) { 
 	Bullet(state.pos, state.dir, maze, targets, messageQueue, r) 
   })                    
   
   messageQueue.ofType("hit").Subscribe(function(hit) {
-	var player = hit.target.player 
-	Man(player, maze, messageQueue, r)
+	// re-instantiate player
+	Man(hit.target.player, maze, messageQueue, r)
   })                               
   console.log('started')
 })                               
