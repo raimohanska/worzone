@@ -19,8 +19,7 @@ $(function() {
   })                    
   
   messageQueue.ofType("hit").Subscribe(function(hit) {
-	// re-instantiate player
-	Man(hit.target.player, maze, messageQueue, r)
+	hit.target.player.join()
   })                               
   console.log('started')
 })                               
@@ -35,9 +34,10 @@ function KeyMap(directionKeyMap, fireKey) {
 function Player(id, keyMap, messageQueue) {
 	var player = {
 		id : id,
-		keyMap : keyMap
+		keyMap : keyMap,
+		join : function() { messageQueue.push({ message : "join", player : this}) }
 	}             
-	messageQueue.push({ message : "join", player : player})
+	player.join()	
 	return player;
 }
 
