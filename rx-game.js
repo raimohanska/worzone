@@ -4,23 +4,21 @@ $(function() {
   var r = Raphael(10, 10, bounds.width, bounds.height);
   r.rect(bounds.x, bounds.y, bounds.width, bounds.height).attr({fill : "#000"})
   var maze = Maze(r, 40)
-  var messageQueue = MessageQueue()
-  
-  // streams
+  var messageQueue = MessageQueue()  
+  var targets = Targets(messageQueue)
+
   var player1 = Player(1, KeyMap([[38, up], [40, down], [37, left], [39, right]], 18))
   var man1 = Man(player1, maze, messageQueue, r)
 
   var player2 = Player(2, KeyMap([[87, up], [83, down], [65, left], [68, right]], 70))
   var man2 = Man(player2, maze, messageQueue, r)                             
 
-  var targets = Targets([man1, man2], messageQueue)
 
   messageQueue.ofType("fire").Subscribe(function(state) { 
 	Bullet(state.pos, state.dir, maze, targets, messageQueue, r) 
   })                    
   
   messageQueue.ofType("hit").Subscribe(function(hit) {
-	console.log("re-instantiating target " + hit.target.id)
 	var player = hit.target.player 
 	Man(player, maze, messageQueue, r)
   })                               
@@ -41,10 +39,13 @@ function Player(id, keyMap) {
 	}
 }
 
-function Targets(targets, messageQueue) {     
+function Targets(messageQueue) {     
+	var targets = []
 	messageQueue.ofType("hit").Subscribe(function(hit) {
-		console.log("removing target " + hit.target.id)
 		targets = _.select(targets, function(target) { return target != hit.target})
+	})                                                                                                   
+	messageQueue.ofType("create").Subscribe(function(create) {
+		targets.push(create.target)
 	})                                                                                                   
 	function targetThat(predicate) {
 	   return first(_.select(targets, predicate))
@@ -85,7 +86,6 @@ function Man(player, maze, messageQueue, r) {
   var startPos = maze.playerStartPos(player)
   var radius = 16      
   var man = r.image("man-left-1.png", startPos.x - radius, startPos.y - radius, radius * 2, radius * 2)
-  console.log("created man " + man.id)
   var hit = messageQueue.ofType("hit").Where(function(hit) {   
 	return hit.target == man
   }).Take(1)
@@ -127,7 +127,8 @@ function Man(player, maze, messageQueue, r) {
   messageQueue.plug(fire)        
   var currentPos = LatestValueHolder(position)
   man.hit = function(pos) { return currentPos.value().subtract(pos).getLength() < radius }
-  man.player = player
+  man.player = player  
+  messageQueue.push({ message : "create", target : man })
   return man                                                          
 }
 
@@ -159,9 +160,6 @@ function MessageQueue() {
 		return function() { observers.splice(observers.indexOf(observer), 1)}
     })
     function push(message) {  	
-	    if (message.message == "hit") {
-			console.log("Push HIT: " + message.target)
-	    }
         observers.map(identity).forEach(function(observer) {
             observer.OnNext(message)
         });
