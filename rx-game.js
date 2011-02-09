@@ -20,9 +20,8 @@ $(function() {
   })                    
   
   messageQueue.ofType("hit").Subscribe(function(hit) {
-	console.log("re-instantiating target " + hit.target)
-	var hitTarget = targets.byId(hit.target)
-	var player = hitTarget.player 
+	console.log("re-instantiating target " + hit.target.id)
+	var player = hit.target.player 
 	Man(player, maze, messageQueue, r)
   })                               
   console.log('started')
@@ -44,8 +43,8 @@ function Player(id, keyMap) {
 
 function Targets(targets, messageQueue) {     
 	messageQueue.ofType("hit").Subscribe(function(hit) {
-		console.log("removing target " + hit.target)
-		targets = _.select(targets, function(target) { return target.id != hit.target})
+		console.log("removing target " + hit.target.id)
+		targets = _.select(targets, function(target) { return target != hit.target})
 	})                                                                                                   
 	function targetThat(predicate) {
 	   return first(_.select(targets, predicate))
@@ -70,7 +69,7 @@ function Bullet(startPos, velocity, maze, targets, messageQueue, r) {
 		.Scan(startPos, function(pos, move) { return pos.add(move.times(20)) })
 	var collision = unlimitedPosition.Where(function(pos) { return !maze.isAccessible(pos, radius, radius) }).Take(1)   
 	var hit = unlimitedPosition.Where(function(pos) { return targets.hit(pos) }).Select(function(pos) {
-		return { message : "hit", target : targets.hit(pos).id}
+		return { message : "hit", target : targets.hit(pos)}
 	}).Take(1)
 	var hitOrCollision = collision.Merge(hit)
 	var position = unlimitedPosition.TakeUntil(hitOrCollision)
@@ -88,7 +87,7 @@ function Man(player, maze, messageQueue, r) {
   var man = r.image("man-left-1.png", startPos.x - radius, startPos.y - radius, radius * 2, radius * 2)
   console.log("created man " + man.id)
   var hit = messageQueue.ofType("hit").Where(function(hit) {   
-	return hit.target == man.id
+	return hit.target == man
   }).Take(1)
   var direction = Keyboard().multiKeyState(keyMap).Where(atMostOne).Select(first).TakeUntil(hit)  
   var latestDirection = direction.Where(identity).StartWith(left)
