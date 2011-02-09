@@ -50,7 +50,7 @@ function Bullet(startPos, velocity, maze, targets, messageQueue, r) {
 		.Scan(startPos, function(pos, move) { return pos.add(move.times(20)) })
 	var collision = unlimitedPosition.Where(function(pos) { return !maze.isAccessible(pos, radius, radius) }).Take(1)   
 	var hit = unlimitedPosition.Where(function(pos) { return targets.hit(pos) }).Select(function(pos) {
-		return { message : "hit", target : targets.hit(pos)}
+		return { message : "hit", target : targets.hit(pos).id}
 	})
 	var hitOrCollision = collision.Merge(hit)
 	var position = unlimitedPosition.TakeUntil(hitOrCollision)
@@ -63,8 +63,8 @@ function Bullet(startPos, velocity, maze, targets, messageQueue, r) {
 function Man(startPos, keyMap, fireKey, maze, messageQueue, r) {
   var radius = 20      
   var man = r.image("man-left-1.png", startPos.x - radius, startPos.y - radius, radius * 2, radius * 2)
-  var hit = messageQueue.ofType("hit").Where(function(hit) { 
-	return hit.target == man
+  var hit = messageQueue.ofType("hit").Where(function(hit) {   
+	return hit.target == man.id
   })
   var direction = Keyboard().multiKeyState(keyMap).TakeUntil(hit).Where(atMostOne).Select(first)
   var latestDirection = direction.Where(identity).StartWith(left)
