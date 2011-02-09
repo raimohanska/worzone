@@ -19,23 +19,12 @@ $(function() {
 	Bullet(state.pos, state.dir, maze, targets, messageQueue, r) 
   })                    
   
-  messageQueue.ofType("shit").Subscribe(function(hit) {
+  messageQueue.ofType("hit").Subscribe(function(hit) {
 	console.log("re-instantiating target " + hit.target)
 	var hitTarget = targets.byId(hit.target)
 	var player = hitTarget.player 
 	Man(player, maze, messageQueue, r)
   })                               
-
-
-
-
-
-  // TODO: how come the "target removed" thing takes two hits to happen??
-
-
-
-  
-
   console.log('started')
 })                               
 
@@ -174,7 +163,7 @@ function MessageQueue() {
 	    if (message.message == "hit") {
 			console.log("Push HIT: " + message.target)
 	    }
-        observers.forEach(function(observer) {
+        observers.map(identity).forEach(function(observer) {
             observer.OnNext(message)
         });
     }
