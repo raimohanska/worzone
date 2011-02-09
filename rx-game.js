@@ -23,14 +23,19 @@ $(function() {
   ]
   var man2 = Man(maze.getPlayerPosition(2), keyMap2, 70, maze, messageQueue, r)                             
 
+  var targets = Targets([man1, man2], messageQueue)
+
   messageQueue.ofType("fire").Subscribe(function(state) { 
-	Bullet(state.pos, state.dir, maze, Targets([man1, man2]), messageQueue, r) 
+	Bullet(state.pos, state.dir, maze, targets, messageQueue, r) 
   })                                            
 
   console.log('started')
 })          
 
-function Targets(targets) {
+function Targets(targets, messageQueue) {     
+	messageQueue.ofType("hit").Subscribe(function(hit) {
+		targets = _.select(targets, function(target) { target.id != hit.id})
+	})
 	return {
 		hit : function(pos) { return first(_.select(targets, function(target) { if (target.hit(pos)) return target }))}
 	}
