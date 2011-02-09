@@ -12,32 +12,47 @@ $(function() {
 	[40, down],
 	[37, left],
 	[39, right]
-  ]
-  var man1 = Man(maze.getPlayerPosition(1), keyMap, 18, maze, messageQueue, r)
+  ]        
+  var player1 = Player(1)
+  var man1 = Man(player1, keyMap, 18, maze, messageQueue, r)
 
   var keyMap2 = [
 	[87, up],
 	[83, down],
 	[65, left],
 	[68, right]
-  ]
-  var man2 = Man(maze.getPlayerPosition(2), keyMap2, 70, maze, messageQueue, r)                             
+  ]                     
+  var player2 = Player(2)
+  var man2 = Man(player2, keyMap2, 70, maze, messageQueue, r)                             
 
   var targets = Targets([man1, man2], messageQueue)
 
   messageQueue.ofType("fire").Subscribe(function(state) { 
 	Bullet(state.pos, state.dir, maze, targets, messageQueue, r) 
-  })                                            
+  })                    
+  
+  messageQueue.ofType("hit").Subscribe(function(hit) {
+	// TODO: re-instantiate player here
+	var hitTarget = targets.byId(hit.id)
+	var player = hitTarget.player
+  }) 
 
   console.log('started')
-})          
+})             
+
+function Player(id) {
+	return {
+		id : id
+	}
+}
 
 function Targets(targets, messageQueue) {     
 	messageQueue.ofType("hit").Subscribe(function(hit) {
-		targets = _.select(targets, function(target) { target.id != hit.id})
+		targets = _.select(targets, function(target) { return target.id != hit.id})
 	})
 	return {
-		hit : function(pos) { return first(_.select(targets, function(target) { if (target.hit(pos)) return target }))}
+		hit : function(pos) { return first(_.select(targets, function(target) { if (target.hit(pos)) return target }))},
+		byId : function(id) { return _.select(targets, function(target) { return first(target.id == id) })}
 	}
 }          
 
@@ -65,7 +80,8 @@ function Bullet(startPos, velocity, maze, targets, messageQueue, r) {
 	messageQueue.plug(hit)
 }      
 
-function Man(startPos, keyMap, fireKey, maze, messageQueue, r) {
+function Man(player, keyMap, fireKey, maze, messageQueue, r) {
+  var startPos = maze.playerStartPos(player)
   var radius = 20      
   var man = r.image("man-left-1.png", startPos.x - radius, startPos.y - radius, radius * 2, radius * 2)
   var hit = messageQueue.ofType("hit").Where(function(hit) {   
@@ -199,8 +215,8 @@ function Maze(raphael, blockSize) {
 		}
 	}           
 	return {
-		getPlayerPosition : function(player) {
-			return toPixels(findMazePos("" + player))
+		playerStartPos : function(player) {
+			return toPixels(findMazePos("" + player.id))
 		},
 		isAccessible : function(pos, objectRadiusX, objectRadiusY) {
 			var radiusX = objectRadiusX - 1
