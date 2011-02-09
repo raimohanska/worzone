@@ -66,9 +66,9 @@ function Man(startPos, keyMap, fireKey, maze, messageQueue, r) {
   var hit = messageQueue.ofType("hit").Where(function(hit) {   
 	return hit.target == man.id
   })
-  var direction = Keyboard().multiKeyState(keyMap).TakeUntil(hit).Where(atMostOne).Select(first)
+  var direction = Keyboard().multiKeyState(keyMap).Where(atMostOne).Select(first)
   var latestDirection = direction.Where(identity).StartWith(left)
-  var movements = ticker.CombineLatest(direction, latter).Where(identity)
+  var movements = ticker.CombineLatest(direction, latter).Where(identity).TakeUntil(hit)
   var position = movements.Scan(startPos, function(pos, move) { 
 	var nextPos = pos.add(move.times(4))         
 	if (!maze.isAccessible(nextPos, radius, radius)) return pos
@@ -89,7 +89,6 @@ function Man(startPos, keyMap, fireKey, maze, messageQueue, r) {
 	man.attr({src : basename + (state.anim) + ".png"})
   })               
   hit.Subscribe(function() {     
-	console.log("SHIT! I'M DEAD")
 	man.attr({src : "explosion.png"})
   })                            
 
