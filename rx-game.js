@@ -7,11 +7,12 @@ $(function() {
   var messageQueue = MessageQueue()  
   var targets = Targets(messageQueue)
 
-  var player1 = Player(1, KeyMap([[38, up], [40, down], [37, left], [39, right]], 18))
-  var man1 = Man(player1, maze, messageQueue, r)
+  messageQueue.ofType("join").Subscribe(function(join) {
+	Man(join.player, maze, messageQueue, r)
+  })
 
-  var player2 = Player(2, KeyMap([[87, up], [83, down], [65, left], [68, right]], 70))
-  var man2 = Man(player2, maze, messageQueue, r)                             
+  var player1 = Player(1, KeyMap([[38, up], [40, down], [37, left], [39, right]], 18), messageQueue)
+  var player2 = Player(2, KeyMap([[87, up], [83, down], [65, left], [68, right]], 70), messageQueue)
 
   messageQueue.ofType("fire").Subscribe(function(state) { 
 	Bullet(state.pos, state.dir, maze, targets, messageQueue, r) 
@@ -31,11 +32,13 @@ function KeyMap(directionKeyMap, fireKey) {
 	}
 }
 
-function Player(id, keyMap) {
-	return {
+function Player(id, keyMap, messageQueue) {
+	var player = {
 		id : id,
 		keyMap : keyMap
-	}
+	}             
+	messageQueue.push({ message : "join", player : player})
+	return player;
 }
 
 function Targets(messageQueue) {     
