@@ -20,9 +20,9 @@ $(function() {
   })                    
   
   messageQueue.ofType("hit").Subscribe(function(hit) {
-	// TODO: re-instantiate player here
-	var hitTarget = targets.byId(hit.id)
-	var player = hitTarget.player
+	var hitTarget = targets.byId(hit.target)
+	var player = hitTarget.player 
+	Man(player, maze, messageQueue, r)
   }) 
 
   console.log('started')
@@ -45,10 +45,13 @@ function Player(id, keyMap) {
 function Targets(targets, messageQueue) {     
 	messageQueue.ofType("hit").Subscribe(function(hit) {
 		targets = _.select(targets, function(target) { return target.id != hit.id})
-	})
+	})                                                                                                   
+	function targetThat(predicate) {
+	   return first(_.select(targets, predicate))
+	}
 	return {
-		hit : function(pos) { return first(_.select(targets, function(target) { if (target.hit(pos)) return target }))},
-		byId : function(id) { return _.select(targets, function(target) { return first(target.id == id) })}
+		hit : function(pos) { return targetThat(function(target) { if (target.hit(pos)) return target })},
+		byId : function(id) { return targetThat(function(target) { return target.id == id })}
 	}
 }          
 
@@ -123,6 +126,7 @@ function Man(player, maze, messageQueue, r) {
   messageQueue.plug(fire)        
   var currentPos = LatestValueHolder(position)
   man.hit = function(pos) { return currentPos.value().subtract(pos).getLength() < radius }
+  man.player = player
   return man                                                          
 }
 
