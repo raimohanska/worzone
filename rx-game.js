@@ -65,15 +65,15 @@ function Man(startPos, keyMap, fireKey, maze, messageQueue, r) {
   var man = r.image("man-left-1.png", startPos.x - radius, startPos.y - radius, radius * 2, radius * 2)
   var hit = messageQueue.ofType("hit").Where(function(hit) {   
 	return hit.target == man.id
-  })
-  var direction = Keyboard().multiKeyState(keyMap).Where(atMostOne).Select(first)
+  }).Take(1)
+  var direction = Keyboard().multiKeyState(keyMap).Where(atMostOne).Select(first).TakeUntil(hit)  
   var latestDirection = direction.Where(identity).StartWith(left)
-  var movements = ticker.CombineLatest(direction, latter).Where(identity).TakeUntil(hit)
+  var movements = ticker.CombineLatest(direction, latter).Where(identity)
   var position = movements.Scan(startPos, function(pos, move) { 
 	var nextPos = pos.add(move.times(4))         
 	if (!maze.isAccessible(nextPos, radius, radius)) return pos
 	return nextPos }).StartWith(startPos)
-  var animation = movements.BufferWithCount(2).Scan(1, function(prev, _) { return prev % 2 + 1})
+  var animation = movements.BufferWithCount(2).Scan(1, function(prev, _) { return prev % 2 + 1}).TakeUntil(hit)
   position.Subscribe(function (pos) { man.attr({x : pos.x - radius, y : pos.y - radius}) })
   var animAndDir = latestDirection.CombineLatest(animation, function(dir, anim) { return {anim : anim, dir : dir}})
   animAndDir.Subscribe(function(state) {
@@ -98,7 +98,7 @@ function Man(startPos, keyMap, fireKey, maze, messageQueue, r) {
 
   var fire = combineWithLatestOf(Keyboard().keyDowns(fireKey), status, function(_, status) { 
 	return {message : "fire", pos : status.pos.add(status.dir.withLength(radius + 5)), dir : status.dir} 
-  })
+  }).TakeUntil(hit)
   
   messageQueue.plug(status)
   messageQueue.plug(fire)        
@@ -136,7 +136,6 @@ function MessageQueue() {
     })
     function push(message) {  	
         observers.forEach(function(observer) {
-	        //console.log("broadcast : " + message.message)
             observer.OnNext(message)
         });
     }
