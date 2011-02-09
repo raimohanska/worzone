@@ -19,11 +19,22 @@ $(function() {
 	Bullet(state.pos, state.dir, maze, targets, messageQueue, r) 
   })                    
   
-  messageQueue.ofType("hit").Subscribe(function(hit) {
+  messageQueue.ofType("shit").Subscribe(function(hit) {
+	console.log("re-instantiating target " + hit.target)
 	var hitTarget = targets.byId(hit.target)
 	var player = hitTarget.player 
 	Man(player, maze, messageQueue, r)
-  }) 
+  })                               
+
+
+
+
+
+  // TODO: how come the "target removed" thing takes two hits to happen??
+
+
+
+  
 
   console.log('started')
 })                               
@@ -44,7 +55,8 @@ function Player(id, keyMap) {
 
 function Targets(targets, messageQueue) {     
 	messageQueue.ofType("hit").Subscribe(function(hit) {
-		targets = _.select(targets, function(target) { return target.id != hit.id})
+		console.log("removing target " + hit.target)
+		targets = _.select(targets, function(target) { return target.id != hit.target})
 	})                                                                                                   
 	function targetThat(predicate) {
 	   return first(_.select(targets, predicate))
@@ -83,8 +95,9 @@ function Man(player, maze, messageQueue, r) {
   var keyMap = player.keyMap.directionKeyMap
   var fireKey = player.keyMap.fireKey
   var startPos = maze.playerStartPos(player)
-  var radius = 20      
+  var radius = 16      
   var man = r.image("man-left-1.png", startPos.x - radius, startPos.y - radius, radius * 2, radius * 2)
+  console.log("created man " + man.id)
   var hit = messageQueue.ofType("hit").Where(function(hit) {   
 	return hit.target == man.id
   }).Take(1)
@@ -158,12 +171,15 @@ function MessageQueue() {
 		return function() { observers.splice(observers.indexOf(observer), 1)}
     })
     function push(message) {  	
+	    if (message.message == "hit") {
+			console.log("Push HIT: " + message.target)
+	    }
         observers.forEach(function(observer) {
             observer.OnNext(message)
         });
     }
     function plug(observable) {
-        observable.Subscribe(push)
+        observable.Subscribe(function(message) {push(message)})
     }
         
     return {
