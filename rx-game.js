@@ -13,8 +13,8 @@ $(function() {
 	[37, left],
 	[39, right]
   ], 18)        
-  var player1 = Player(1)
-  var man1 = Man(player1, keyMap1, maze, messageQueue, r)
+  var player1 = Player(1, keyMap1)
+  var man1 = Man(player1, maze, messageQueue, r)
 
   var keyMap2 = KeyMap([
 	[87, up],
@@ -22,8 +22,8 @@ $(function() {
 	[65, left],
 	[68, right]
   ], 70)                    
-  var player2 = Player(2)
-  var man2 = Man(player2, keyMap2, maze, messageQueue, r)                             
+  var player2 = Player(2, keyMap2)
+  var man2 = Man(player2, maze, messageQueue, r)                             
 
   var targets = Targets([man1, man2], messageQueue)
 
@@ -47,9 +47,10 @@ function KeyMap(directionKeyMap, fireKey) {
 	}
 }
 
-function Player(id) {
+function Player(id, keyMap) {
 	return {
-		id : id
+		id : id,
+		keyMap : keyMap
 	}
 }
 
@@ -87,9 +88,9 @@ function Bullet(startPos, velocity, maze, targets, messageQueue, r) {
 	messageQueue.plug(hit)
 }      
 
-function Man(player, keys, maze, messageQueue, r) {
-  var keyMap = keys.directionKeyMap
-  var fireKey = keys.fireKey
+function Man(player, maze, messageQueue, r) {
+  var keyMap = player.keyMap.directionKeyMap
+  var fireKey = player.keyMap.fireKey
   var startPos = maze.playerStartPos(player)
   var radius = 20      
   var man = r.image("man-left-1.png", startPos.x - radius, startPos.y - radius, radius * 2, radius * 2)
