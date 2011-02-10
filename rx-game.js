@@ -61,7 +61,8 @@ function Targets(messageQueue) {
 	   return first(_.select(targets, predicate))
 	}
 	return {
-		hit : function(pos) { return targetThat(function(target) { if (target.hit(pos)) return target })},
+		hit : function(pos, yes) { return targetThat(function(target) { 
+		  return target.hit(pos) && yes(target) })},
 		byId : function(id) { return targetThat(function(target) { return target.id == id })}
 	}
 }          
@@ -73,14 +74,15 @@ function LatestValueHolder(stream) {
 }
 
 function Bullet(startPos, velocity, maze, targets, messageQueue, r) {      
+  var targetFilter = always(true)
 	var radius = 3
 	var bullet = r.circle(startPos.x, startPos.y, radius).attr({fill: "#f00"})
 	var movements = gameTicker.Select(function(_) {return velocity})
 	var unlimitedPosition = movements
 		.Scan(startPos, function(pos, move) { return pos.add(move.times(20)) })
 	var collision = unlimitedPosition.Where(function(pos) { return !maze.isAccessible(pos, radius, radius) }).Take(1)   
-	var hit = unlimitedPosition.Where(function(pos) { return targets.hit(pos) }).Select(function(pos) {
-		return { message : "hit", target : targets.hit(pos)}
+	var hit = unlimitedPosition.Where(function(pos) { return targets.hit(pos, targetFilter) }).Select(function(pos) {
+		return { message : "hit", target : targets.hit(pos, targetFilter)}
 	}).Take(1)
 	var hitOrCollision = collision.Merge(hit)
 	var position = unlimitedPosition.TakeUntil(hitOrCollision)
