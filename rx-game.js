@@ -13,6 +13,7 @@ $(function() {
 
   var player1 = Player(1, KeyMap([[38, up], [40, down], [37, left], [39, right]], 18), messageQueue)
   var player2 = Player(2, KeyMap([[87, up], [83, down], [65, left], [68, right]], 70), messageQueue)
+  Burwor(maze, messageQueue, r)
 
   messageQueue.ofType("fire").Subscribe(function(state) { 
 	Bullet(state.pos, state.dir, maze, targets, messageQueue, r) 
@@ -95,6 +96,11 @@ function PlayerFigure(player, maze, messageQueue, r) {
   var man = Figure(startPos, imgPrefix, controlInput, maze, messageQueue, r)
   man.player = player  
   return man
+}
+
+function Burwor(maze, messageQueue, r) {
+  var devNull = Rx.Observable.FromArray([])
+  Figure(maze.randomFreePos(), "burwor", ControlInput(devNull, devNull), maze, messageQueue, r)
 }
 
 function Figure(startPos, imgPrefix, controlInput, maze, messageQueue, r) {
@@ -222,12 +228,12 @@ function Maze(raphael, blockSize) {
 			}
 		}           		
   }
-  function blockThat(predicate) {
-		return forEachBlock(function(x, y) { 
-		  if (predicate(x, y)) { return new Point(x, y) }
-		})
-  }
 	function findMazePos(character) {
+    function blockThat(predicate) {
+  		return forEachBlock(function(x, y) { 
+  		  if (predicate(x, y)) { return new Point(x, y) }
+  		})
+    }
 		return blockThat(function(x, y) { return (data[y][x] == character)})
 	}
 	forEachBlock(function(x, y) { if (isWall(Point(x, y))) { raphael.rect(x * blockSize, y * blockSize, blockSize, blockSize).attr({ fill : "#808"})}})
@@ -241,7 +247,14 @@ function Maze(raphael, blockSize) {
 			var radiusY = objectRadiusY - 1
 			return !isWall(toBlocks(pos.add(Point(-radiusX, -radiusY)))) && !isWall(toBlocks(pos.add(Point(radiusX, radiusY))))
 				&& !isWall(toBlocks(pos.add(Point(radiusX, -radiusY)))) && !isWall(toBlocks(pos.add(Point(-radiusX, radiusY))))         
-		}
+		},
+		randomFreePos : function() {
+		  function randomInt(limit) { return Math.floor(Math.random() * limit) }
+		  while(true) {
+		    var blockPos = Point(randomInt(width), randomInt(height))
+		    if (!isWall(blockPos)) return toPixels(blockPos)
+	    }
+	  }
 	}
 }
                               
