@@ -25,7 +25,7 @@ $(function() {
 })                        
 
 function Monsters(maze, messageQueue, r) {
-  ticker(5000).Subscribe(function() {Burwor(maze, messageQueue, r)})  
+  ticker(5000).Take(10).Subscribe(function() {Burwor(maze, messageQueue, r)})  
 }       
 
 function KeyMap(directionKeyMap, fireKey) {
