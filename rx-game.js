@@ -99,50 +99,48 @@ function PlayerFigure(player, maze, messageQueue, r) {
 
 function Figure(startPos, imgPrefix, controlInput, maze, messageQueue, r) {
     var radius = 16      
-    var man = r.image(imgPrefix + "-left-1.png", startPos.x - radius, startPos.y - radius, radius * 2, radius * 2)
-    var hit = messageQueue.ofType("hit").Where(function(hit) {   
-  	return hit.target == man
-    }).Take(1)
+    var figure = r.image(imgPrefix + "-left-1.png", startPos.x - radius, startPos.y - radius, radius * 2, radius * 2)
+    var hit = messageQueue.ofType("hit").Where(function(hit) { return hit.target == figure }).Take(1)
     var direction = controlInput.directionInput.TakeUntil(hit)  
     var latestDirection = direction.Where(identity).StartWith(left)
     var movements = ticker.CombineLatest(direction, latter).Where(identity)
     var position = movements.Scan(startPos, function(pos, move) { 
-  	var nextPos = pos.add(move.times(4))         
+    var nextPos = pos.add(move.times(4))         
   	if (!maze.isAccessible(nextPos, radius, radius)) return pos
   	return nextPos }).StartWith(startPos)
     var animation = movements.BufferWithCount(2).Scan(1, function(prev, _) { return prev % 2 + 1}).TakeUntil(hit)
-    position.Subscribe(function (pos) { man.attr({x : pos.x - radius, y : pos.y - radius}) })
+    position.Subscribe(function (pos) { figure.attr({x : pos.x - radius, y : pos.y - radius}) })
     var animAndDir = latestDirection.CombineLatest(animation, function(dir, anim) { return {anim : anim, dir : dir}})
     animAndDir.Subscribe(function(state) {
-  	var angle, basename
-  	if (state.dir == left) {
-  		basename = imgPrefix + "-left-"
-  		angle = 0
-  	} else {
-  		basename = imgPrefix + "-right-"
-  		angle = state.dir.getAngle() * 360 / (2 * Math.PI)
-  	}
-  	man.rotate(angle, true)
-  	man.attr({src : basename + (state.anim) + ".png"})
+      var angle, basename
+      if (state.dir == left) {
+        basename = imgPrefix + "-left-"
+        angle = 0
+      } else {
+        basename = imgPrefix + "-right-"
+        angle = state.dir.getAngle() * 360 / (2 * Math.PI)
+      }
+      figure.rotate(angle, true)
+      figure.attr({src : basename + (state.anim) + ".png"})
     })               
     hit.Subscribe(function() {     
-  	man.attr({src : "explosion.png"})
+      figure.attr({src : "explosion.png"})
     })                            
 
     var status = position.CombineLatest(latestDirection, function(pos, dir) {
-  	return { message : "move", object : man, pos : pos, dir : dir }
+  	  return { message : "move", object : figure, pos : pos, dir : dir }
     })         
 
     var fire = combineWithLatestOf(controlInput.fireInput, status, function(_, status) { 
-  	return {message : "fire", pos : status.pos.add(status.dir.withLength(radius + 5)), dir : status.dir} 
+  	  return {message : "fire", pos : status.pos.add(status.dir.withLength(radius + 5)), dir : status.dir} 
     }).TakeUntil(hit)
 
     messageQueue.plug(status)
     messageQueue.plug(fire)        
     var currentPos = LatestValueHolder(position)
-    man.hit = function(pos) { return currentPos.value().subtract(pos).getLength() < radius }
-    messageQueue.push({ message : "create", target : man })
-    return man                                                          
+    figure.hit = function(pos) { return currentPos.value().subtract(pos).getLength() < radius }
+    messageQueue.push({ message : "create", target : figure })
+    return figure                                                          
 }
 
 function Keyboard() {
