@@ -61,8 +61,8 @@ function Targets(messageQueue) {
 	   return first(_.select(targets, predicate))
 	}
 	return {
-		hit : function(pos, yes) { return targetThat(function(target) { 
-		  return target.hit(pos) && yes(target) })},
+		hit : function(pos, filter) { return targetThat(function(target) { 
+		  return target.hit(pos) && filter(target) })},
 		byId : function(id) { return targetThat(function(target) { return target.id == id })}
 	}
 }          
