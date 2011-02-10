@@ -27,7 +27,7 @@ $(function() {
 function Monsters(maze, messageQueue, targets, r) {
   ticker(5000).Subscribe(function() {
     if (targets.count(Monsters.monsterFilter) < 10)
-      Burwor(maze, messageQueue, r)}
+      Burwor(maze, messageQueue, targets, r)}
   )  
 }       
 Monsters.monsterFilter = function(target) { return target.monster }  
@@ -69,7 +69,8 @@ function Targets(messageQueue) {
 		hit : function(pos, filter) { return targetThat(function(target) { 
 		  return target.hit(pos) && filter(target) })},
 		byId : function(id) { return targetThat(function(target) { return target.id == id })},
-		count : function(filter) { return _.select(targets, filter).length}
+		count : function(filter) { return _.select(targets, filter).length},
+		select : function(filter) { return _.select(targets, filter) }
 	} 
 }          
 
@@ -118,11 +119,13 @@ function PlayerFigure(player, maze, messageQueue, targets, r) {
   return man
 }
 
-function Burwor(maze, messageQueue, r) {
+function Burwor(maze, messageQueue, targets, r) {
   var fire = MessageQueue()
   var direction = MessageQueue()
   function access(pos) { return maze.isAccessibleByMonster(pos, 16) }
-  var burwor = Figure(maze.randomFreePos(), "burwor", ControlInput(direction, fire), maze, access, messageQueue, r)
+  var burwor = Figure(maze.randomFreePos(function(pos) { 
+    return access(pos) && targets.select(function(target){ return target.position().subtract(pos) < 100 }).length == 0
+  }), "burwor", ControlInput(direction, fire), maze, access, messageQueue, r)
   burwor.monster = true
   var current = left;  
   direction.plug(gameTicker.CombineWithLatestOf(burwor.streams.position, latter).Select(function(status) {
@@ -186,6 +189,7 @@ function Figure(startPos, imgPrefix, controlInput, maze, access, messageQueue, r
     messageQueue.plug(fire)        
     var currentPos = LatestValueHolder(position)
     figure.hit = function(pos) { return currentPos.value().subtract(pos).getLength() < radius }
+    figure.position = function() { return currentPos.value()}
     messageQueue.push({ message : "create", target : figure })
     figure.streams = {
       position : status
@@ -296,10 +300,11 @@ function Maze(raphael, blockSize) {
 		isAccessibleByMonster : function(pos, objectRadiusX, objectRadiusY) {
 		  return accessible(pos, objectRadiusX, objectRadiusY, function(blockPos) { return isFree(blockPos) })
 		},
-		randomFreePos : function() {
+		randomFreePos : function(filter) {
 		  while(true) {
 		    var blockPos = Point(randomInt(width), randomInt(height))
-		    if (!isWall(blockPos)) return toPixels(blockPos)
+		    var pixelPos = toPixels(blockPos)
+		    if (filter(pixelPos)) return pixelPos
 	    }
 	  }
 	}
