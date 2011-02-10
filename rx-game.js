@@ -107,6 +107,7 @@ function PlayerFigure(player, maze, messageQueue, targets, r) {
 	  .Where(function(status) { return targets.hit(status.pos, monsterFilter) })
 	  .Select(function(pos) { return { message : "hit", target : man}})
 	  .Take(1)
+	toConsole(hitByMonster, "monsta hit")
 	messageQueue.plug(hitByMonster)
   return man
 }
@@ -120,7 +121,7 @@ function Burwor(maze, messageQueue, r) {
   var current = left;  
   direction.plug(gameTicker.CombineWithLatestOf(burwor.streams.position, latter).Select(function(status) {
     function canMove(dir) {
-      return maze.isAccessible(status.pos.add(dir), burwor.radius)
+      return maze.isAccessibleByMonster(status.pos.add(dir), burwor.radius)
     }
 	  if (canMove(current)) return current
 	  var possible = _.select([left, right, up, down], canMove)
@@ -250,6 +251,7 @@ function Maze(raphael, blockSize) {
 		return data[blockPos.y][blockPos.x]
 	}
 	function isWall(blockPos) { return charAt(blockPos) == "*" }
+	function isFree(blockPos) { return charAt(blockPos) == " " }
 	function toPixels(blockPos) { return blockPos.times(blockSize).add(Point(blockSize / 2, blockSize / 2))}
 	function toBlocks(pixelPos) { return pixelPos.times(1 / blockSize).floor()}
 	function forEachBlock(fn) {
@@ -270,17 +272,22 @@ function Maze(raphael, blockSize) {
 		return blockThat(function(x, y) { return (data[y][x] == character)})
 	}
 	forEachBlock(function(x, y) { if (isWall(Point(x, y))) { raphael.rect(x * blockSize, y * blockSize, blockSize, blockSize).attr({ fill : "#808"})}})
-
+  function accessible(pos, objectRadiusX, objectRadiusY, predicate) {
+	  if (!objectRadiusY) objectRadiusY = objectRadiusX
+		var radiusX = objectRadiusX - 1
+		var radiusY = objectRadiusY - 1
+		return predicate(toBlocks(pos.add(Point(-radiusX, -radiusY)))) && predicate(toBlocks(pos.add(Point(radiusX, radiusY))))
+			&& predicate(toBlocks(pos.add(Point(radiusX, -radiusY)))) && predicate(toBlocks(pos.add(Point(-radiusX, radiusY))))         
+	}
 	return {
 		playerStartPos : function(player) {
 			return toPixels(findMazePos("" + player.id))
 		},
 		isAccessible : function(pos, objectRadiusX, objectRadiusY) {
-		  if (!objectRadiusY) objectRadiusY = objectRadiusX
-			var radiusX = objectRadiusX - 1
-			var radiusY = objectRadiusY - 1
-			return !isWall(toBlocks(pos.add(Point(-radiusX, -radiusY)))) && !isWall(toBlocks(pos.add(Point(radiusX, radiusY))))
-				&& !isWall(toBlocks(pos.add(Point(radiusX, -radiusY)))) && !isWall(toBlocks(pos.add(Point(-radiusX, radiusY))))         
+		  return accessible(pos, objectRadiusX, objectRadiusY, function(blockPos) { return !isWall(blockPos) })
+		},
+		isAccessibleByMonster : function(pos, objectRadiusX, objectRadiusY) {
+		  return accessible(pos, objectRadiusX, objectRadiusY, function(blockPos) { return isFree(blockPos) })
 		},
 		randomFreePos : function() {
 		  while(true) {
