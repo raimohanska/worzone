@@ -99,7 +99,7 @@ function PlayerFigure(player, maze, messageQueue, targets, r) {
   var controlInput = ControlInput(directionInput, fireInput)
   var imgPrefix = "man"    
   var startPos = maze.playerStartPos(player)
-  function access(pos) { return maze.isAccessible(pos) }
+  function access(pos) { return maze.isAccessible(pos, 16) }
   var man = Figure(startPos, imgPrefix, controlInput, maze, access, messageQueue, r)
   man.player = player
   function monsterFilter (target) { return target.monster }  
@@ -116,7 +116,7 @@ function PlayerFigure(player, maze, messageQueue, targets, r) {
 function Burwor(maze, messageQueue, r) {
   var fire = MessageQueue()
   var direction = MessageQueue()
-  function access(pos) { return maze.isAccessibleByMonster(pos, 20) }
+  function access(pos) { return maze.isAccessibleByMonster(pos, 16) }
   var burwor = Figure(maze.randomFreePos(), "burwor", ControlInput(direction, fire), maze, access, messageQueue, r)
   burwor.monster = true
   var current = left;  
@@ -136,7 +136,7 @@ function Figure(startPos, imgPrefix, controlInput, maze, access, messageQueue, r
       if (speed == undefined) speed = figure.speed
       if (speed <= 0) return pos
       var nextPos = pos.add(direction.times(speed))
-      if (!maze.isAccessible(nextPos, radius)) 
+      if (!access(nextPos, radius)) 
         return moveIfPossible(pos, direction, speed -1)
       return nextPos
     }
