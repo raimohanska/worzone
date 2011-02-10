@@ -99,9 +99,10 @@ function PlayerFigure(player, maze, messageQueue, r) {
 }
 
 function Burwor(maze, messageQueue, r) {
-  var fire = MessageQueue().toObservable()
-  var direction = ticker.Select(always(left))
+  var fire = MessageQueue()
+  var direction = MessageQueue()
   Figure(maze.randomFreePos(), "burwor", ControlInput(direction, fire), maze, messageQueue, r)
+  direction.plug(ticker.Select(always(left)))
 }
 
 function Figure(startPos, imgPrefix, controlInput, maze, messageQueue, r) {
@@ -153,6 +154,9 @@ function Figure(startPos, imgPrefix, controlInput, maze, messageQueue, r) {
     var currentPos = LatestValueHolder(position)
     figure.hit = function(pos) { return currentPos.value().subtract(pos).getLength() < radius }
     messageQueue.push({ message : "create", target : figure })
+    figure.streams = {
+      position : position
+    }
     return figure                                                          
 }
 
@@ -179,24 +183,21 @@ function Keyboard() {
 
 function MessageQueue() {
     var observers = []
-    var asObservable =  Rx.Observable.Create(function(observer) { 
+    var messageQueue = Rx.Observable.Create(function(observer) { 
         observers.push(observer)
 		    return function() { observers.splice(observers.indexOf(observer), 1)}
     })    
-    var messageQueue = {
-        toObservable : function() { return asObservable },
-		    ofType : function(messageType) { return asObservable.Where(function(message) { return message.message == messageType})},
-        push : function (message) {  	
-            observers.map(identity).forEach(function(observer) {
-                observer.OnNext(message)
-            });
-            return messageQueue
-        },
-        plug : function (observable) {
-            observable.Subscribe(function(message) {messageQueue.push(message)})
-            return messageQueue
-        }
+    messageQueue.ofType = function(messageType) { return messageQueue.Where(function(message) { return message.message == messageType})}
+    messageQueue.push = function (message) {  	
+        observers.map(identity).forEach(function(observer) {
+            observer.OnNext(message)
+        });
+        return messageQueue
     }
+    messageQueue.plug = function (observable) {
+        observable.Subscribe(function(message) {messageQueue.push(message)})
+        return messageQueue
+    }    
     return messageQueue
 }
 
