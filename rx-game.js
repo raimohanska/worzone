@@ -112,9 +112,10 @@ function Figure(startPos, imgPrefix, controlInput, maze, messageQueue, r) {
     var latestDirection = direction.Where(identity).StartWith(left)
     var movements = ticker.CombineLatest(direction, latter).Where(identity)
     var position = movements.Scan(startPos, function(pos, move) { 
-    var nextPos = pos.add(move.times(4))         
-  	if (!maze.isAccessible(nextPos, radius, radius)) return pos
-  	return nextPos }).StartWith(startPos)
+      var nextPos = pos.add(move.times(4))         
+  	  if (!maze.isAccessible(nextPos, radius, radius)) return pos
+  	  return nextPos 
+  	}).StartWith(startPos)
     var animation = movements.BufferWithCount(2).Scan(1, function(prev, _) { return prev % 2 + 1}).TakeUntil(hit)
     position.Subscribe(function (pos) { figure.attr({x : pos.x - radius, y : pos.y - radius}) })
     var animAndDir = latestDirection.CombineLatest(animation, function(dir, anim) { return {anim : anim, dir : dir}})
