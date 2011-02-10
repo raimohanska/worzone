@@ -141,7 +141,7 @@ function FigureImage(imgPrefix, animCycle) {
 }
 
 function Burwor(maze, messageQueue, targets, r) {
-  var fire = MessageQueue()
+  var fire = ticker(7000)
   var direction = MessageQueue()
   function access(pos) { return maze.isAccessibleByMonster(pos, 16) }
   var burwor = Figure(maze.randomFreePos(function(pos) { 
