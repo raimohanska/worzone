@@ -105,10 +105,9 @@ function PlayerFigure(player, maze, messageQueue, targets, r) {
   var directionInput = Keyboard().multiKeyState(player.keyMap.directionKeyMap).Where(atMostOne).Select(first)
   var fireInput = Keyboard().keyDowns(player.keyMap.fireKey)
   var controlInput = ControlInput(directionInput, fireInput)
-  var imgPrefix = "man"    
   var startPos = maze.playerStartPos(player)
   function access(pos) { return maze.isAccessible(pos, 16) }
-  var man = Figure(startPos, imgPrefix, controlInput, maze, access, messageQueue, r)
+  var man = Figure(startPos, FigureImage("man", 2), controlInput, maze, access, messageQueue, r)
   man.player = player
 	var hitByMonster = man.streams.position
 	  .SampledBy(gameTicker)
@@ -120,13 +119,17 @@ function PlayerFigure(player, maze, messageQueue, targets, r) {
   return man
 }
 
+function FigureImage(imgPrefix, animCycle) {
+  return {imgPrefix : imgPrefix, animCycle : animCycle}
+}
+
 function Burwor(maze, messageQueue, targets, r) {
   var fire = MessageQueue()
   var direction = MessageQueue()
   function access(pos) { return maze.isAccessibleByMonster(pos, 16) }
   var burwor = Figure(maze.randomFreePos(function(pos) { 
     return access(pos) && targets.select(function(target){ return target.player && target.inRange(pos, 100) }).length == 0
-  }), "burwor", ControlInput(direction, fire), maze, access, messageQueue, r)
+  }), FigureImage("burwor", 10), ControlInput(direction, fire), maze, access, messageQueue, r)
   burwor.monster = true
   var current = left;  
   direction.plug(burwor.streams.position.SampledBy(gameTicker).Select(function(status) {
@@ -140,7 +143,7 @@ function Burwor(maze, messageQueue, targets, r) {
   }).StartWith(left))
 }
 
-function Figure(startPos, imgPrefix, controlInput, maze, access, messageQueue, r) {
+function Figure(startPos, imageData, controlInput, maze, access, messageQueue, r) {
     function moveIfPossible(pos, direction, speed) {
       if (speed == undefined) speed = figure.speed
       if (speed <= 0) return pos
@@ -150,7 +153,7 @@ function Figure(startPos, imgPrefix, controlInput, maze, access, messageQueue, r
       return nextPos
     }
     var radius = 16      
-    var figure = r.image(imgPrefix + "-left-1.png", startPos.x - radius, startPos.y - radius, radius * 2, radius * 2)
+    var figure = r.image(imageData.imgPrefix + "-left-1.png", startPos.x - radius, startPos.y - radius, radius * 2, radius * 2)
     figure.radius = radius
     figure.speed = 4
     var hit = messageQueue.ofType("hit").Where(function(hit) { return hit.target == figure }).Take(1)
@@ -158,16 +161,16 @@ function Figure(startPos, imgPrefix, controlInput, maze, access, messageQueue, r
     var latestDirection = direction.Where(identity).StartWith(left)
     var movements = direction.SampledBy(gameTicker).Where(identity).TakeUntil(hit)
     var position = movements.Scan(startPos, moveIfPossible).StartWith(startPos).DistinctUntilChanged()
-    var animation = movements.BufferWithCount(2).Scan(1, function(prev, _) { return prev % 2 + 1}).TakeUntil(hit)
+    var animation = movements.BufferWithCount(imageData.animCycle).Scan(1, function(prev, _) { return prev % 2 + 1}).TakeUntil(hit)
     position.Subscribe(function (pos) { figure.attr({x : pos.x - radius, y : pos.y - radius}) })
     var animAndDir = latestDirection.CombineLatest(animation, function(dir, anim) { return {anim : anim, dir : dir}})
     animAndDir.Subscribe(function(state) {
       var angle, basename
       if (state.dir == left) {
-        basename = imgPrefix + "-left-"
+        basename = imageData.imgPrefix + "-left-"
         angle = 0
       } else {
-        basename = imgPrefix + "-right-"
+        basename = imageData.imgPrefix + "-right-"
         angle = state.dir.getAngle() * 360 / (2 * Math.PI)
       }
       figure.rotate(angle, true)
