@@ -11,9 +11,9 @@ $(function() {
 	PlayerFigure(join.player, maze, messageQueue, r)
   })
 
-  var player1 = Player(1, KeyMap([[38, up], [40, down], [37, left], [39, right]], 18), messageQueue)
+  var player1 = Player(1, KeyMap([[38, up], [40, down], [37, left], [39, right]], 189), messageQueue)
   var player2 = Player(2, KeyMap([[87, up], [83, down], [65, left], [68, right]], 70), messageQueue)
-  Burwor(maze, messageQueue, r)
+  Monsters(maze, messageQueue, r)
 
   messageQueue.ofType("fire").Subscribe(function(state) { 
 	Bullet(state.pos, state.dir, maze, targets, messageQueue, r) 
@@ -22,7 +22,11 @@ $(function() {
   function isPlayerHit(hit) { return hit.target.player }
   messageQueue.ofType("hit").Where(isPlayerHit).Subscribe(function(hit) {hit.target.player.join()})                               
   console.log('started')
-})                               
+})                        
+
+function Monsters(maze, messageQueue, r) {
+  ticker(5000).Subscribe(function() {Burwor(maze, messageQueue, r)})  
+}       
 
 function KeyMap(directionKeyMap, fireKey) {
 	return {
@@ -71,7 +75,7 @@ function LatestValueHolder(stream) {
 function Bullet(startPos, velocity, maze, targets, messageQueue, r) {      
 	var radius = 3
 	var bullet = r.circle(startPos.x, startPos.y, radius).attr({fill: "#f00"})
-	var movements = ticker.Select(function(_) {return velocity})
+	var movements = gameTicker.Select(function(_) {return velocity})
 	var unlimitedPosition = movements
 		.Scan(startPos, function(pos, move) { return pos.add(move.times(20)) })
 	var collision = unlimitedPosition.Where(function(pos) { return !maze.isAccessible(pos, radius, radius) }).Take(1)   
@@ -103,7 +107,7 @@ function Burwor(maze, messageQueue, r) {
   var burwor = Figure(maze.randomFreePos(), "burwor", ControlInput(direction, fire), maze, messageQueue, r)
   var current = left;
   
-  direction.plug(ticker.CombineWithLatestOf(burwor.streams.position, latter).Select(function(status) {
+  direction.plug(gameTicker.CombineWithLatestOf(burwor.streams.position, latter).Select(function(status) {
     function canMove(dir) {
       return maze.isAccessible(status.pos.add(dir), burwor.radius)
     }
@@ -130,7 +134,7 @@ function Figure(startPos, imgPrefix, controlInput, maze, messageQueue, r) {
     var hit = messageQueue.ofType("hit").Where(function(hit) { return hit.target == figure }).Take(1)
     var direction = controlInput.directionInput.TakeUntil(hit).DistinctUntilChanged()
     var latestDirection = direction.Where(identity).StartWith(left)
-    var movements = ticker.CombineWithLatestOf(direction, latter).Where(identity).TakeUntil(hit)
+    var movements = gameTicker.CombineWithLatestOf(direction, latter).Where(identity).TakeUntil(hit)
     var position = movements.Scan(startPos, moveIfPossible).StartWith(startPos).DistinctUntilChanged()
     var animation = movements.BufferWithCount(2).Scan(1, function(prev, _) { return prev % 2 + 1}).TakeUntil(hit)
     position.Subscribe(function (pos) { figure.attr({x : pos.x - radius, y : pos.y - radius}) })
@@ -173,7 +177,7 @@ function Figure(startPos, imgPrefix, controlInput, maze, messageQueue, r) {
 function Keyboard() {
 	var allKeyUps = $(document).toObservable("keyup")
 	var allKeyDowns = $(document).toObservable("keydown")
-	//allKeyDowns.Subscribe(function(event) {console.log(event.keyCode)})
+	allKeyDowns.Subscribe(function(event) {console.log(event.keyCode)})
 	function keyCodeIs(keyCode) { return function(event) { return event.keyCode == keyCode} }
 	function keyUps(keyCode) { return allKeyUps.Where(keyCodeIs(keyCode)) }
 	function keyDowns(keyCode) { return allKeyDowns.Where(keyCodeIs(keyCode)) }
@@ -299,10 +303,13 @@ Rx.Observable.CombineLatestAsArray = function(streams) {
 }
 function toArray(x) { return !x ? [] : (Array.isArray(x) ? x : [x])}
 function concatArrays(a1, a2) { return toArray(a1).concat(toArray(a2)) }
-var ticker = Rx.Observable.Create(function(observer) { 
-	var id = setInterval(observer.OnNext, delay) 
-	return function() { clearInterval(id) }
-})
+var gameTicker = ticker(delay)
+function ticker(interval) {
+  return Rx.Observable.Create(function(observer) { 
+  	var id = setInterval(observer.OnNext, interval) 
+  	return function() { clearInterval(id) }
+  })
+}
 function always(value) { return function(_) { return value } }
 function atMostOne(array) { return array.length <= 1 }
 function print(x) { console.log(x) }
