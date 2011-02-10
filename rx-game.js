@@ -124,7 +124,7 @@ function Burwor(maze, messageQueue, targets, r) {
   var direction = MessageQueue()
   function access(pos) { return maze.isAccessibleByMonster(pos, 16) }
   var burwor = Figure(maze.randomFreePos(function(pos) { 
-    return access(pos) && targets.select(function(target){ return target.position().subtract(pos) < 100 }).length == 0
+    return access(pos) && targets.select(function(target){ return target.player && target.inRange(pos, 100) }).length == 0
   }), "burwor", ControlInput(direction, fire), maze, access, messageQueue, r)
   burwor.monster = true
   var current = left;  
@@ -188,8 +188,8 @@ function Figure(startPos, imgPrefix, controlInput, maze, access, messageQueue, r
     messageQueue.plug(status)
     messageQueue.plug(fire)        
     var currentPos = LatestValueHolder(position)
-    figure.hit = function(pos) { return currentPos.value().subtract(pos).getLength() < radius }
-    figure.position = function() { return currentPos.value()}
+    figure.hit = function(pos) { return this.inRange(pos, radius) }
+    figure.inRange = function(pos, range) { return currentPos.value().subtract(pos).getLength() < range }
     messageQueue.push({ message : "create", target : figure })
     figure.streams = {
       position : status
