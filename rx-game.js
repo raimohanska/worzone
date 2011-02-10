@@ -105,18 +105,22 @@ function Burwor(maze, messageQueue, r) {
 }
 
 function Figure(startPos, imgPrefix, controlInput, maze, messageQueue, r) {
+    function moveIfPossible(pos, direction, speed) {
+      if (speed == undefined) speed = figure.speed
+      if (speed <= 0) return pos
+      var nextPos = pos.add(direction.times(speed))
+      if (!maze.isAccessible(nextPos, radius, radius)) 
+        return moveIfPossible(pos, direction, speed -1)
+      return nextPos
+    }
     var radius = 16      
     var figure = r.image(imgPrefix + "-left-1.png", startPos.x - radius, startPos.y - radius, radius * 2, radius * 2)
-    var figure.speed = 4
+    figure.speed = 4
     var hit = messageQueue.ofType("hit").Where(function(hit) { return hit.target == figure }).Take(1)
     var direction = controlInput.directionInput.TakeUntil(hit)  
     var latestDirection = direction.Where(identity).StartWith(left)
     var movements = ticker.CombineLatest(direction, latter).Where(identity)
-    var position = movements.Scan(startPos, function(pos, move) { 
-      var nextPos = pos.add(move.times(figure.speed))         
-  	  if (!maze.isAccessible(nextPos, radius, radius)) return pos
-  	  return nextPos 
-  	}).StartWith(startPos)
+    var position = movements.Scan(startPos, moveIfPossible).StartWith(startPos)
     var animation = movements.BufferWithCount(2).Scan(1, function(prev, _) { return prev % 2 + 1}).TakeUntil(hit)
     position.Subscribe(function (pos) { figure.attr({x : pos.x - radius, y : pos.y - radius}) })
     var animAndDir = latestDirection.CombineLatest(animation, function(dir, anim) { return {anim : anim, dir : dir}})
