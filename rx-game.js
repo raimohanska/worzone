@@ -99,8 +99,9 @@ function PlayerFigure(player, maze, messageQueue, r) {
 }
 
 function Burwor(maze, messageQueue, r) {
-  var devNull = Rx.Observable.FromArray([])
-  Figure(maze.randomFreePos(), "burwor", ControlInput(devNull, devNull), maze, messageQueue, r)
+  var fire = MessageQueue().toObservable()
+  var direction = ticker.Select(always(left))
+  Figure(maze.randomFreePos(), "burwor", ControlInput(direction, fire), maze, messageQueue, r)
 }
 
 function Figure(startPos, imgPrefix, controlInput, maze, messageQueue, r) {
@@ -174,23 +175,23 @@ function MessageQueue() {
     var observers = []
     var asObservable =  Rx.Observable.Create(function(observer) { 
         observers.push(observer)
-		return function() { observers.splice(observers.indexOf(observer), 1)}
-    })
-    function push(message) {  	
-        observers.map(identity).forEach(function(observer) {
-            observer.OnNext(message)
-        });
-    }
-    function plug(observable) {
-        observable.Subscribe(function(message) {push(message)})
-    }
-        
-    return {
+		    return function() { observers.splice(observers.indexOf(observer), 1)}
+    })    
+    var messageQueue = {
         toObservable : function() { return asObservable },
-		ofType : function(messageType) { return asObservable.Where(function(message) { return message.message == messageType})},
-        push : push,
-        plug : plug
+		    ofType : function(messageType) { return asObservable.Where(function(message) { return message.message == messageType})},
+        push : function (message) {  	
+            observers.map(identity).forEach(function(observer) {
+                observer.OnNext(message)
+            });
+            return messageQueue
+        },
+        plug : function (observable) {
+            observable.Subscribe(function(message) {messageQueue.push(message)})
+            return messageQueue
+        }
     }
+    return messageQueue
 }
 
 function Maze(raphael, blockSize) {
@@ -209,7 +210,7 @@ function Maze(raphael, blockSize) {
 	  + "* *******  ******* *\n"
 	  + "*                  *\n"
 	  + "*1****************2*\n"
-	  + "***              ***\n"
+	  + "********************\n"
 	data = data.split("\n");
 	var width = data[0].length
 	var height = data.length
@@ -287,7 +288,7 @@ var ticker = Rx.Observable.Create(function(observer) {
 function always(value) { return function(_) { return value } }
 function atMostOne(array) { return array.length <= 1 }
 function print(x) { console.log(x) }
-function toConsole(stream) { stream.Subscribe(print)}
+function toConsole(stream, prefix) { stream.Subscribe( function(item) { console.log(prefix + ":" + item) })}
 function Rectangle(x, y, width, height) {
     return {x : x, y : y, width : width, height : height}
 }
