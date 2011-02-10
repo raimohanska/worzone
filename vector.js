@@ -34,7 +34,7 @@ function Vector2D(x, y, cache) {
 		// Number -> Vector2D
 		rotateDeg : function(degrees, cache) {
 			var radians = degrees * 2 * Math.PI / 360
-			this.rotateRad(radians, cache)
+			return this.rotateRad(radians, cache)
 		},
 		// Unit -> Number
 		getAngle : function(cache) {

@@ -19,9 +19,8 @@ $(function() {
 	Bullet(state.pos, state.dir, maze, targets, messageQueue, r) 
   })                    
   
-  messageQueue.ofType("hit").Subscribe(function(hit) {
-	hit.target.player.join()
-  })                               
+  function isPlayerHit(hit) { return hit.target.player }
+  messageQueue.ofType("hit").Where(isPlayerHit).Subscribe(function(hit) {hit.target.player.join()})                               
   console.log('started')
 })                               
 
@@ -101,8 +100,18 @@ function PlayerFigure(player, maze, messageQueue, r) {
 function Burwor(maze, messageQueue, r) {
   var fire = MessageQueue()
   var direction = MessageQueue()
-  Figure(maze.randomFreePos(), "burwor", ControlInput(direction, fire), maze, messageQueue, r)
-  direction.plug(ticker.Select(always(left)))
+  var burwor = Figure(maze.randomFreePos(), "burwor", ControlInput(direction, fire), maze, messageQueue, r)
+  var current = left;
+  
+  direction.plug(ticker.CombineWithLatestOf(burwor.streams.position, latter).Select(function(status) {
+    function canMove(dir) {
+      return maze.isAccessible(status.pos.add(dir), burwor.radius)
+    }
+	  if (canMove(current)) return current
+	  var possible = _.select([left, right, up, down], canMove)
+	  current = possible[randomInt(possible.length)]
+	  return current
+  }).StartWith(left))
 }
 
 function Figure(startPos, imgPrefix, controlInput, maze, messageQueue, r) {
@@ -110,18 +119,19 @@ function Figure(startPos, imgPrefix, controlInput, maze, messageQueue, r) {
       if (speed == undefined) speed = figure.speed
       if (speed <= 0) return pos
       var nextPos = pos.add(direction.times(speed))
-      if (!maze.isAccessible(nextPos, radius, radius)) 
+      if (!maze.isAccessible(nextPos, radius)) 
         return moveIfPossible(pos, direction, speed -1)
       return nextPos
     }
     var radius = 16      
     var figure = r.image(imgPrefix + "-left-1.png", startPos.x - radius, startPos.y - radius, radius * 2, radius * 2)
+    figure.radius = radius
     figure.speed = 4
     var hit = messageQueue.ofType("hit").Where(function(hit) { return hit.target == figure }).Take(1)
-    var direction = controlInput.directionInput.TakeUntil(hit)  
+    var direction = controlInput.directionInput.TakeUntil(hit).DistinctUntilChanged()
     var latestDirection = direction.Where(identity).StartWith(left)
-    var movements = ticker.CombineLatest(direction, latter).Where(identity)
-    var position = movements.Scan(startPos, moveIfPossible).StartWith(startPos)
+    var movements = ticker.CombineWithLatestOf(direction, latter).Where(identity).TakeUntil(hit)
+    var position = movements.Scan(startPos, moveIfPossible).StartWith(startPos).DistinctUntilChanged()
     var animation = movements.BufferWithCount(2).Scan(1, function(prev, _) { return prev % 2 + 1}).TakeUntil(hit)
     position.Subscribe(function (pos) { figure.attr({x : pos.x - radius, y : pos.y - radius}) })
     var animAndDir = latestDirection.CombineLatest(animation, function(dir, anim) { return {anim : anim, dir : dir}})
@@ -155,7 +165,7 @@ function Figure(startPos, imgPrefix, controlInput, maze, messageQueue, r) {
     figure.hit = function(pos) { return currentPos.value().subtract(pos).getLength() < radius }
     messageQueue.push({ message : "create", target : figure })
     figure.streams = {
-      position : position
+      position : status
     }
     return figure                                                          
 }
@@ -251,13 +261,13 @@ function Maze(raphael, blockSize) {
 			return toPixels(findMazePos("" + player.id))
 		},
 		isAccessible : function(pos, objectRadiusX, objectRadiusY) {
+		  if (!objectRadiusY) objectRadiusY = objectRadiusX
 			var radiusX = objectRadiusX - 1
 			var radiusY = objectRadiusY - 1
 			return !isWall(toBlocks(pos.add(Point(-radiusX, -radiusY)))) && !isWall(toBlocks(pos.add(Point(radiusX, radiusY))))
 				&& !isWall(toBlocks(pos.add(Point(radiusX, -radiusY)))) && !isWall(toBlocks(pos.add(Point(-radiusX, radiusY))))         
 		},
 		randomFreePos : function() {
-		  function randomInt(limit) { return Math.floor(Math.random() * limit) }
 		  while(true) {
 		    var blockPos = Point(randomInt(width), randomInt(height))
 		    if (!isWall(blockPos)) return toPixels(blockPos)
@@ -268,6 +278,7 @@ function Maze(raphael, blockSize) {
                               
 var delay = 50
 var left = Point(-1, 0), right = Point(1, 0), up = Point(0, -1), down = Point(0, 1)
+function randomInt(limit) { return Math.floor(Math.random() * limit) }
 function identity(x) { return x }
 function first(xs) { return xs ? xs[0] : undefined}
 function latter (_, second) { return second }      
