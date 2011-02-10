@@ -99,7 +99,8 @@ function PlayerFigure(player, maze, messageQueue, targets, r) {
   var controlInput = ControlInput(directionInput, fireInput)
   var imgPrefix = "man"    
   var startPos = maze.playerStartPos(player)
-  var man = Figure(startPos, imgPrefix, controlInput, maze, messageQueue, r)
+  function access(pos) { return maze.isAccessible(pos) }
+  var man = Figure(startPos, imgPrefix, controlInput, maze, access, messageQueue, r)
   man.player = player
   function monsterFilter (target) { return target.monster }  
   // TODO: proper collision detection
@@ -115,13 +116,13 @@ function PlayerFigure(player, maze, messageQueue, targets, r) {
 function Burwor(maze, messageQueue, r) {
   var fire = MessageQueue()
   var direction = MessageQueue()
-  var burwor = Figure(maze.randomFreePos(), "burwor", ControlInput(direction, fire), maze, messageQueue, r)
+  function access(pos) { return maze.isAccessibleByMonster(pos, 20) }
+  var burwor = Figure(maze.randomFreePos(), "burwor", ControlInput(direction, fire), maze, access, messageQueue, r)
   burwor.monster = true
-
   var current = left;  
   direction.plug(gameTicker.CombineWithLatestOf(burwor.streams.position, latter).Select(function(status) {
     function canMove(dir) {
-      return maze.isAccessibleByMonster(status.pos.add(dir), burwor.radius)
+      return access(status.pos.add(dir))
     }
 	  if (canMove(current)) return current
 	  var possible = _.select([left, right, up, down], canMove)
@@ -130,7 +131,7 @@ function Burwor(maze, messageQueue, r) {
   }).StartWith(left))
 }
 
-function Figure(startPos, imgPrefix, controlInput, maze, messageQueue, r) {
+function Figure(startPos, imgPrefix, controlInput, maze, access, messageQueue, r) {
     function moveIfPossible(pos, direction, speed) {
       if (speed == undefined) speed = figure.speed
       if (speed <= 0) return pos
