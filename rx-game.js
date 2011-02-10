@@ -150,9 +150,7 @@ function Burwor(maze, messageQueue, targets, r) {
   burwor.monster = true
   var current = left;  
   direction.plug(burwor.streams.position.SampledBy(gameTicker).Select(function(status) {
-    function canMove(dir) {
-      return access(status.pos.add(dir))
-    }
+    function canMove(dir) { return access(status.pos.add(dir)) }
 	  if (canMove(current)) return current
 	  var possible = _.select([left, right, up, down], canMove)
 	  current = possible[randomInt(possible.length)]
