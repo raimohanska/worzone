@@ -13,7 +13,7 @@ $(function() {
 
   var player1 = Player(1, KeyMap([[38, up], [40, down], [37, left], [39, right]], 189), messageQueue)
   var player2 = Player(2, KeyMap([[87, up], [83, down], [65, left], [68, right]], 70), messageQueue)
-  Monsters(maze, messageQueue, r)
+  Monsters(maze, messageQueue, targets, r)
 
   messageQueue.ofType("fire").Subscribe(function(state) { 
 	  Bullet(state.pos, state.dir, maze, targets, messageQueue, r) 
@@ -24,9 +24,14 @@ $(function() {
   console.log('started')
 })                        
 
-function Monsters(maze, messageQueue, r) {
-  ticker(5000).Take(10).Subscribe(function() {Burwor(maze, messageQueue, r)})  
+function Monsters(maze, messageQueue, targets, r) {
+  ticker(5000).Subscribe(function() {
+    if (targets.count(Monsters.monsterFilter) < 10)
+      Burwor(maze, messageQueue, r)}
+  )  
 }       
+Monsters.monsterFilter = function(target) { return target.monster }  
+
 
 function KeyMap(directionKeyMap, fireKey) {
 	return {
@@ -63,8 +68,9 @@ function Targets(messageQueue) {
 	return {
 		hit : function(pos, filter) { return targetThat(function(target) { 
 		  return target.hit(pos) && filter(target) })},
-		byId : function(id) { return targetThat(function(target) { return target.id == id })}
-	}
+		byId : function(id) { return targetThat(function(target) { return target.id == id })},
+		count : function(filter) { return _.select(targets, filter).length}
+	} 
 }          
 
 function LatestValueHolder(stream) {
@@ -102,10 +108,9 @@ function PlayerFigure(player, maze, messageQueue, targets, r) {
   function access(pos) { return maze.isAccessible(pos, 16) }
   var man = Figure(startPos, imgPrefix, controlInput, maze, access, messageQueue, r)
   man.player = player
-  function monsterFilter (target) { return target.monster }  
   // TODO: proper collision detection
 	var hitByMonster = man.streams.position
-	  .Where(function(status) { return targets.hit(status.pos, monsterFilter) })
+	  .Where(function(status) { return targets.hit(status.pos, Monsters.monsterFilter) })
 	  .Select(function(pos) { return { message : "hit", target : man}})
 	  .Take(1)
 	toConsole(hitByMonster, "monsta hit")
@@ -166,6 +171,7 @@ function Figure(startPos, imgPrefix, controlInput, maze, access, messageQueue, r
     })               
     hit.Subscribe(function() {     
       figure.attr({src : "explosion.png"})
+      setTimeout(function(){ figure.remove() }, 1000)
     })                            
 
     var status = position.CombineLatest(latestDirection, function(pos, dir) {
@@ -301,6 +307,7 @@ function Maze(raphael, blockSize) {
                               
 var delay = 50
 var left = Point(-1, 0), right = Point(1, 0), up = Point(0, -1), down = Point(0, 1)
+
 function randomInt(limit) { return Math.floor(Math.random() * limit) }
 function identity(x) { return x }
 function first(xs) { return xs ? xs[0] : undefined}
