@@ -145,7 +145,7 @@ function Figure(startPos, imgPrefix, controlInput, maze, messageQueue, r) {
   	  return { message : "move", object : figure, pos : pos, dir : dir }
     })         
 
-    var fire = combineWithLatestOf(controlInput.fireInput, status, function(_, status) { 
+    var fire = controlInput.fireInput.CombineWithLatestOf(status, function(_, status) { 
   	  return {message : "fire", pos : status.pos.add(status.dir.withLength(radius + 5)), dir : status.dir} 
     }).TakeUntil(hit)
 
@@ -173,7 +173,7 @@ function Keyboard() {
 	}
 	function multiKeyState(keyMap) {
 		var streams = keyMap.map(function(pair) { return keyState(pair[0], pair[1]) })
-		return combineLatestAsArray(streams)
+		return Rx.Observable.CombineLatestAsArray(streams)
 	}	
 	return {
 		multiKeyState : multiKeyState,
@@ -271,23 +271,23 @@ var left = Point(-1, 0), right = Point(1, 0), up = Point(0, -1), down = Point(0,
 function identity(x) { return x }
 function first(xs) { return xs ? xs[0] : undefined}
 function latter (_, second) { return second }      
-function combineWithLatestOf(mainStream, additional, combinator) {
+Rx.Observable.prototype.CombineWithLatestOf = function(otherStream, combinator) {
 	var latest
-	additional.Subscribe(function(value) { latest = value })
-	return mainStream.Select(function(mainValue) { return combinator(mainValue, latest) } )
-}                   
-function combineWith(streams, combinator) {
+	otherStream.Subscribe(function(value) { latest = value })
+	return this.Select(function(mainValue) { return combinator(mainValue, latest) } )
+}
+Rx.Observable.CombineAll = function(streams, combinator) {
 	var stream = streams[0]
 	for (var i = 1; i < streams.length; i++) {
 		stream = combinator(stream, streams[i])
 	}
 	return stream;	
-}                                                                    
+}
+Rx.Observable.CombineLatestAsArray = function(streams) {   
+	return Rx.Observable.CombineAll(streams, function(s1, s2) { return s1.CombineLatest(s2, concatArrays)})  
+}
 function toArray(x) { return !x ? [] : (Array.isArray(x) ? x : [x])}
 function concatArrays(a1, a2) { return toArray(a1).concat(toArray(a2)) }
-function combineLatestAsArray(streams) {   
-	return combineWith(streams, function(s1, s2) { return s1.CombineLatest(s2, concatArrays)})  
-}
 var ticker = Rx.Observable.Create(function(observer) { 
 	var id = setInterval(observer.OnNext, delay) 
 	return function() { clearInterval(id) }
