@@ -25,10 +25,12 @@ $(function() {
 })                        
 
 function Monsters(maze, messageQueue, targets, r) {
-  ticker(5000).Subscribe(function() {
+  function spawn() {
     if (targets.count(Monsters.monsterFilter) < 10)
-      Burwor(maze, messageQueue, targets, r)}
-  )  
+      Burwor(maze, messageQueue, targets, r)
+  }
+  _.range(0, 5).forEach(spawn)
+  ticker(5000).Subscribe(spawn)  
 }       
 Monsters.monsterFilter = function(target) { return target.monster }  
 
