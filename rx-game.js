@@ -289,7 +289,9 @@ function Maze(raphael, blockSize) {
     }
 		return blockThat(function(x, y) { return (data[y][x] == character)})
 	}
-	forEachBlock(function(x, y) { if (isWall(Point(x, y))) { raphael.rect(x * blockSize, y * blockSize, blockSize, blockSize).attr({ fill : "#808"})}})
+	forEachBlock(function(x, y) { if (isWall(Point(x, y))) { 
+	  raphael.rect(x * blockSize + 1, y * blockSize + 1, blockSize - 3, blockSize - 3).attr({ stroke : "#808", "stroke-width" : 3, fill : "#404"})
+	}})
   function accessible(pos, objectRadiusX, objectRadiusY, predicate) {
 	  if (!objectRadiusY) objectRadiusY = objectRadiusX
 		var radiusX = objectRadiusX - 1
