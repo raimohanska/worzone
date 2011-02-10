@@ -213,22 +213,25 @@ function Maze(raphael, blockSize) {
 	function isWall(blockPos) { return charAt(blockPos) == "*" }
 	function toPixels(blockPos) { return blockPos.times(blockSize).add(Point(blockSize / 2, blockSize / 2))}
 	function toBlocks(pixelPos) { return pixelPos.times(1 / blockSize).floor()}
-	function findMazePos(character) {
+	function forEachBlock(fn) {
 		for (var x = 0; x < width; x++) {
 			for (var y = 0; y < height; y++) {
-				if (data[y][x] == character) {
-					return new Point(x, y)
-				}
+				var result = fn(x, y)
+				if (result) 
+				  return result;
 			}
 		}           		
+  }
+  function blockThat(predicate) {
+		return forEachBlock(function(x, y) { 
+		  if (predicate(x, y)) { return new Point(x, y) }
+		})
+  }
+	function findMazePos(character) {
+		return blockThat(function(x, y) { return (data[y][x] == character)})
 	}
-	for (var x = 0; x < width; x++) {
-		for (var y = 0; y < height; y++) {
-			if (isWall(Point(x, y))) {
-				raphael.rect(x * blockSize, y * blockSize, blockSize, blockSize).attr({ fill : "#808"})
-			}
-		}
-	}           
+	forEachBlock(function(x, y) { if (isWall(Point(x, y))) { raphael.rect(x * blockSize, y * blockSize, blockSize, blockSize).attr({ fill : "#808"})}})
+
 	return {
 		playerStartPos : function(player) {
 			return toPixels(findMazePos("" + player.id))
