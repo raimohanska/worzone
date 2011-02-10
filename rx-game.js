@@ -66,8 +66,9 @@ function Targets(messageQueue) {
 	   return first(_.select(targets, predicate))
 	}
 	return {
-		hit : function(pos, filter) { return targetThat(function(target) { 
-		  return target.hit(pos) && filter(target) })},
+		hit : function(pos, filter) { this.inRange(pos, 0, filter) },
+		inRange : function(pos, range, filter) { return targetThat(function(target) { 
+  		  return target.inRange(pos, range) && filter(target) })},
 		byId : function(id) { return targetThat(function(target) { return target.id == id })},
 		count : function(filter) { return _.select(targets, filter).length},
 		select : function(filter) { return _.select(targets, filter) }
@@ -109,9 +110,9 @@ function PlayerFigure(player, maze, messageQueue, targets, r) {
   function access(pos) { return maze.isAccessible(pos, 16) }
   var man = Figure(startPos, imgPrefix, controlInput, maze, access, messageQueue, r)
   man.player = player
-  // TODO: proper collision detection
 	var hitByMonster = man.streams.position
-	  .Where(function(status) { return targets.hit(status.pos, Monsters.monsterFilter) })
+	  .SampledBy(gameTicker)
+	  .Where(function(status) { return targets.inRange(status.pos, man.radius, Monsters.monsterFilter) })
 	  .Select(function(pos) { return { message : "hit", target : man}})
 	  .Take(1)
 	toConsole(hitByMonster, "monsta hit")
@@ -128,7 +129,7 @@ function Burwor(maze, messageQueue, targets, r) {
   }), "burwor", ControlInput(direction, fire), maze, access, messageQueue, r)
   burwor.monster = true
   var current = left;  
-  direction.plug(gameTicker.CombineWithLatestOf(burwor.streams.position, latter).Select(function(status) {
+  direction.plug(burwor.streams.position.SampledBy(gameTicker).Select(function(status) {
     function canMove(dir) {
       return access(status.pos.add(dir))
     }
@@ -155,7 +156,7 @@ function Figure(startPos, imgPrefix, controlInput, maze, access, messageQueue, r
     var hit = messageQueue.ofType("hit").Where(function(hit) { return hit.target == figure }).Take(1)
     var direction = controlInput.directionInput.TakeUntil(hit).DistinctUntilChanged()
     var latestDirection = direction.Where(identity).StartWith(left)
-    var movements = gameTicker.CombineWithLatestOf(direction, latter).Where(identity).TakeUntil(hit)
+    var movements = direction.SampledBy(gameTicker).Where(identity).TakeUntil(hit)
     var position = movements.Scan(startPos, moveIfPossible).StartWith(startPos).DistinctUntilChanged()
     var animation = movements.BufferWithCount(2).Scan(1, function(prev, _) { return prev % 2 + 1}).TakeUntil(hit)
     position.Subscribe(function (pos) { figure.attr({x : pos.x - radius, y : pos.y - radius}) })
@@ -181,15 +182,15 @@ function Figure(startPos, imgPrefix, controlInput, maze, access, messageQueue, r
   	  return { message : "move", object : figure, pos : pos, dir : dir }
     })         
 
-    var fire = controlInput.fireInput.CombineWithLatestOf(status, function(_, status) { 
+    var fire = status.SampledBy(controlInput.fireInput).Select(function(status) { 
   	  return {message : "fire", pos : status.pos.add(status.dir.withLength(radius + 5)), dir : status.dir} 
     }).TakeUntil(hit)
 
     messageQueue.plug(status)
     messageQueue.plug(fire)        
     var currentPos = LatestValueHolder(position)
-    figure.hit = function(pos) { return this.inRange(pos, radius) }
-    figure.inRange = function(pos, range) { return currentPos.value().subtract(pos).getLength() < range }
+    figure.hit = function(pos) { return this.inRange(0) }
+    figure.inRange = function(pos, range) { return currentPos.value().subtract(pos).getLength() < range + radius }
     messageQueue.push({ message : "create", target : figure })
     figure.streams = {
       position : status
@@ -321,6 +322,9 @@ Rx.Observable.prototype.CombineWithLatestOf = function(otherStream, combinator) 
 	var latest
 	otherStream.Subscribe(function(value) { latest = value })
 	return this.Select(function(mainValue) { return combinator(mainValue, latest) } )
+}
+Rx.Observable.prototype.SampledBy = function(otherStream) {
+  return otherStream.CombineWithLatestOf(this, latter)
 }
 Rx.Observable.CombineAll = function(streams, combinator) {
 	var stream = streams[0]
