@@ -105,8 +105,9 @@ function Burwor(maze, messageQueue, r) {
   var fire = MessageQueue()
   var direction = MessageQueue()
   var burwor = Figure(maze.randomFreePos(), "burwor", ControlInput(direction, fire), maze, messageQueue, r)
-  var current = left;
-  
+  burwor.monster = true
+
+  var current = left;  
   direction.plug(gameTicker.CombineWithLatestOf(burwor.streams.position, latter).Select(function(status) {
     function canMove(dir) {
       return maze.isAccessible(status.pos.add(dir), burwor.radius)
