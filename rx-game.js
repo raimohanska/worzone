@@ -107,12 +107,13 @@ function Burwor(maze, messageQueue, r) {
 function Figure(startPos, imgPrefix, controlInput, maze, messageQueue, r) {
     var radius = 16      
     var figure = r.image(imgPrefix + "-left-1.png", startPos.x - radius, startPos.y - radius, radius * 2, radius * 2)
+    var figure.speed = 4
     var hit = messageQueue.ofType("hit").Where(function(hit) { return hit.target == figure }).Take(1)
     var direction = controlInput.directionInput.TakeUntil(hit)  
     var latestDirection = direction.Where(identity).StartWith(left)
     var movements = ticker.CombineLatest(direction, latter).Where(identity)
     var position = movements.Scan(startPos, function(pos, move) { 
-      var nextPos = pos.add(move.times(4))         
+      var nextPos = pos.add(move.times(figure.speed))         
   	  if (!maze.isAccessible(nextPos, radius, radius)) return pos
   	  return nextPos 
   	}).StartWith(startPos)
