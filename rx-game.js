@@ -11,8 +11,8 @@ $(function() {
 	  PlayerFigure(join.player, maze, messageQueue, targets, r)
   })
 
-  var player1 = Player(1, KeyMap([[38, up], [40, down], [37, left], [39, right]], 189), messageQueue)
-  var player2 = Player(2, KeyMap([[87, up], [83, down], [65, left], [68, right]], 70), messageQueue)
+  var player1 = Player(1, KeyMap([[87, up], [83, down], [65, left], [68, right]], 70), messageQueue)
+  var player2 = Player(2, KeyMap([[38, up], [40, down], [37, left], [39, right]], 189), messageQueue)
   Monsters(maze, messageQueue, targets, r)
 
   messageQueue.ofType("fire").Subscribe(function(state) { 
@@ -66,7 +66,7 @@ function Targets(messageQueue) {
 	   return first(_.select(targets, predicate))
 	}
 	return {
-		hit : function(pos, filter) { this.inRange(pos, 0, filter) },
+		hit : function(pos, filter) { return this.inRange(pos, 0, filter) },
 		inRange : function(pos, range, filter) { return targetThat(function(target) { 
   		  return target.inRange(pos, range) && filter(target) })},
 		byId : function(id) { return targetThat(function(target) { return target.id == id })},
@@ -189,7 +189,6 @@ function Figure(startPos, imgPrefix, controlInput, maze, access, messageQueue, r
     messageQueue.plug(status)
     messageQueue.plug(fire)        
     var currentPos = LatestValueHolder(position)
-    figure.hit = function(pos) { return this.inRange(0) }
     figure.inRange = function(pos, range) { return currentPos.value().subtract(pos).getLength() < range + radius }
     messageQueue.push({ message : "create", target : figure })
     figure.streams = {
