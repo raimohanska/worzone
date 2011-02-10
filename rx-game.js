@@ -8,7 +8,7 @@ $(function() {
   var targets = Targets(messageQueue)
 
   messageQueue.ofType("join").Subscribe(function(join) {
-	PlayerFigure(join.player, maze, messageQueue, r)
+	  PlayerFigure(join.player, maze, messageQueue, targets, r)
   })
 
   var player1 = Player(1, KeyMap([[38, up], [40, down], [37, left], [39, right]], 189), messageQueue)
@@ -16,7 +16,7 @@ $(function() {
   Monsters(maze, messageQueue, r)
 
   messageQueue.ofType("fire").Subscribe(function(state) { 
-	Bullet(state.pos, state.dir, maze, targets, messageQueue, r) 
+	  Bullet(state.pos, state.dir, maze, targets, messageQueue, r) 
   })                    
   
   function isPlayerHit(hit) { return hit.target.player }
@@ -81,25 +81,33 @@ function Bullet(startPos, velocity, maze, targets, messageQueue, r) {
 	var unlimitedPosition = movements
 		.Scan(startPos, function(pos, move) { return pos.add(move.times(20)) })
 	var collision = unlimitedPosition.Where(function(pos) { return !maze.isAccessible(pos, radius, radius) }).Take(1)   
-	var hit = unlimitedPosition.Where(function(pos) { return targets.hit(pos, targetFilter) }).Select(function(pos) {
-		return { message : "hit", target : targets.hit(pos, targetFilter)}
-	}).Take(1)
+	var hit = unlimitedPosition
+	  .Where(function(pos) { return targets.hit(pos, targetFilter) })
+	  .Select(function(pos) { return { message : "hit", target : targets.hit(pos, targetFilter)}})
+	  .Take(1)
 	var hitOrCollision = collision.Merge(hit)
 	var position = unlimitedPosition.TakeUntil(hitOrCollision)
 	
-    position.Subscribe(function (pos) { bullet.animate({cx : pos.x, cy : pos.y}, delay) })
-    hitOrCollision.Subscribe(function(pos) { bullet.remove() }) 
+  position.Subscribe(function (pos) { bullet.animate({cx : pos.x, cy : pos.y}, delay) })
+  hitOrCollision.Subscribe(function(pos) { bullet.remove() }) 
 	messageQueue.plug(hit)
 }      
 
-function PlayerFigure(player, maze, messageQueue, r) {
+function PlayerFigure(player, maze, messageQueue, targets, r) {
   var directionInput = Keyboard().multiKeyState(player.keyMap.directionKeyMap).Where(atMostOne).Select(first)
   var fireInput = Keyboard().keyDowns(player.keyMap.fireKey)
   var controlInput = ControlInput(directionInput, fireInput)
   var imgPrefix = "man"    
   var startPos = maze.playerStartPos(player)
   var man = Figure(startPos, imgPrefix, controlInput, maze, messageQueue, r)
-  man.player = player  
+  man.player = player
+  function monsterFilter (target) { return target.monster }  
+  // TODO: proper collision detection
+	var hitByMonster = man.streams.position
+	  .Where(function(status) { return targets.hit(status.pos, monsterFilter) })
+	  .Select(function(pos) { return { message : "hit", target : man}})
+	  .Take(1)
+	messageQueue.plug(hitByMonster)
   return man
 }
 
