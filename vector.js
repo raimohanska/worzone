@@ -41,7 +41,10 @@ function Vector2D(x, y, cache) {
 			var length = this.getLength()
 			unit = this.withLength(1, cache)
 			return Math.atan2(unit.y, unit.x)			
-		},   
+		}, 
+		getAngleDeg : function(cache) {
+		  return this.getAngle(cache) * 360 / (2 * Math.PI)
+		}, 
 		floor : function(cache) {
 			return Vector2D(Math.floor(this.x), Math.floor(this.y), cache)
 		},
