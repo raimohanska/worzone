@@ -1,5 +1,4 @@
 $(function() {
-  // graphics setup
   var bounds = Rectangle(0, 0, 800, 600)
   var r = Raphael(10, 10, bounds.width, bounds.height);
   r.rect(bounds.x, bounds.y, bounds.width, bounds.height).attr({fill : "#000"})
@@ -7,21 +6,22 @@ $(function() {
   var messageQueue = MessageQueue()  
   var targets = Targets(messageQueue)
 
-  messageQueue.ofType("join").Subscribe(function(join) {
-	  PlayerFigure(join.player, maze, messageQueue, targets, r)
-  })
-
-  var player1 = Player(1, KeyMap([[87, up], [83, down], [65, left], [68, right]], 70), messageQueue)
-  var player2 = Player(2, KeyMap([[38, up], [40, down], [37, left], [39, right]], 189), messageQueue)
   Monsters(maze, messageQueue, targets, r)
+  Players(maze, messageQueue, targets, r)
 
   messageQueue.ofType("fire").Subscribe(function(state) { 
 	  Bullet(state.pos, state.dir, maze, targets, messageQueue, r) 
   })                    
-  
+})   
+
+function Players(maze, messageQueue, targets, r) {
+  messageQueue.ofType("join").Subscribe(function(join) {
+	  PlayerFigure(join.player, maze, messageQueue, targets, r)
+  })
   messageQueue.ofType("hit").Where(function (hit) { return hit.target.player }).Subscribe(function(hit) {hit.target.player.join()})                               
-  console.log('started')
-})                        
+  var player1 = Player(1, KeyMap([[87, up], [83, down], [65, left], [68, right]], 70), messageQueue)
+  var player2 = Player(2, KeyMap([[38, up], [40, down], [37, left], [39, right]], 189), messageQueue)
+}                     
 
 function Monsters(maze, messageQueue, targets, r) {
   function burwor() { Burwor(maze, messageQueue, targets, r) }
