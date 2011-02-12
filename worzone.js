@@ -26,8 +26,10 @@ $(function() {
 
 function Monsters(maze, messageQueue, targets, r) {
   function spawn() {
-    if (targets.count(Monsters.monsterFilter) < 10)
+    if (targets.count(Monsters.monsterFilter) < 10) {
       Burwor(maze, messageQueue, targets, r)
+      Garwor(maze, messageQueue, targets, r)
+    }
   }
   _.range(0, 5).forEach(spawn)
   ticker(5000).Subscribe(spawn)  
@@ -143,12 +145,20 @@ function FigureImage(imgPrefix, animCycle) {
 }
 
 function Burwor(maze, messageQueue, targets, r) {
+  return Monster("burwor", maze, messageQueue, targets, r)
+}
+
+function Garwor(maze, messageQueue, targets, r) {
+  return Monster("garwor", maze, messageQueue, targets, r)
+}
+
+function Monster(name, maze, messageQueue, targets, r) {
   var fire = ticker(7000)
   var direction = MessageQueue()
   function access(pos) { return maze.isAccessibleByMonster(pos, 16) }
   var burwor = Figure(maze.randomFreePos(function(pos) { 
     return access(pos) && targets.select(function(target){ return target.player && target.inRange(pos, 100) }).length == 0
-  }), FigureImage("burwor", 10), ControlInput(direction, fire), maze, access, messageQueue, r)
+  }), FigureImage(name, 10), ControlInput(direction, fire), maze, access, messageQueue, r)
   burwor.monster = true
   direction.plug(burwor.streams.position.SampledBy(gameTicker).Scan(left, function(current, status) {
     function canMove(dir) { return access(status.pos.add(dir)) }
