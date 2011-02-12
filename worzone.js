@@ -111,7 +111,7 @@ function PlayerFigure(player, maze, messageQueue, targets, r) {
   var controlInput = ControlInput(directionInput, fireInput)
   var startPos = maze.playerStartPos(player)
   function access(pos) { return maze.isAccessible(pos, 16) }
-  var man = Figure(startPos, FigureImage("man", 2), controlInput, maze, access, messageQueue, r)
+  var man = Figure(startPos, FigureImage("man", 2, 2), controlInput, maze, access, messageQueue, r)
   man.player = player
 	var hitByMonster = man.streams.position
 	  .SampledBy(gameTicker)
@@ -123,13 +123,13 @@ function PlayerFigure(player, maze, messageQueue, targets, r) {
   return man
 }
 
-function FigureImage(imgPrefix, animCycle) {
+function FigureImage(imgPrefix, animCount, animCycle) {
   return {
     create : function(startPos, radius, r) {
       return r.image(imgPrefix + "-left-1.png", startPos.x - radius, startPos.y - radius, radius * 2, radius * 2)
     },
     animate : function(figure, statusStream) {
-      var animationSequence = statusStream.BufferWithCount(animCycle).Scan(1, function(prev, _) { return prev % 2 + 1})
+      var animationSequence = statusStream.BufferWithCount(animCycle).Scan(1, function(prev, _) { return prev % animCount + 1})
       var animation = statusStream.CombineLatest(animationSequence, function(status, index) { 
         if (status.dir == left) {
           return { image : imgPrefix + "-left-" + index + ".png", angle : 0 }
@@ -145,20 +145,20 @@ function FigureImage(imgPrefix, animCycle) {
 }
 
 function Burwor(maze, messageQueue, targets, r) {
-  return Monster("burwor", maze, messageQueue, targets, r)
+  return Monster(FigureImage("burwor", 2, 10), maze, messageQueue, targets, r)
 }
 
-function Garwor(maze, messageQueue, targets, r) {
-  return Monster("garwor", maze, messageQueue, targets, r)
+function Garwor(maze, messageQueue, targets, r) {  
+  return Monster(FigureImage("garwor", 3, 2), maze, messageQueue, targets, r)
 }
 
-function Monster(name, maze, messageQueue, targets, r) {
+function Monster(image, maze, messageQueue, targets, r) {
   var fire = ticker(7000)
   var direction = MessageQueue()
   function access(pos) { return maze.isAccessibleByMonster(pos, 16) }
   var burwor = Figure(maze.randomFreePos(function(pos) { 
     return access(pos) && targets.select(function(target){ return target.player && target.inRange(pos, 100) }).length == 0
-  }), FigureImage(name, 10), ControlInput(direction, fire), maze, access, messageQueue, r)
+  }), image, ControlInput(direction, fire), maze, access, messageQueue, r)
   burwor.monster = true
   direction.plug(burwor.streams.position.SampledBy(gameTicker).Scan(left, function(current, status) {
     function canMove(dir) { return access(status.pos.add(dir)) }
