@@ -19,23 +19,23 @@ $(function() {
 	  Bullet(state.pos, state.dir, maze, targets, messageQueue, r) 
   })                    
   
-  function isPlayerHit(hit) { return hit.target.player }
-  messageQueue.ofType("hit").Where(isPlayerHit).Subscribe(function(hit) {hit.target.player.join()})                               
+  messageQueue.ofType("hit").Where(function (hit) { return hit.target.player }).Subscribe(function(hit) {hit.target.player.join()})                               
   console.log('started')
 })                        
 
 function Monsters(maze, messageQueue, targets, r) {
-  function spawn() {
-    if (targets.count(Monsters.monsterFilter) < 10) {
-      Burwor(maze, messageQueue, targets, r)
-      Garwor(maze, messageQueue, targets, r)
-    }
-  }
-  _.range(0, 5).forEach(spawn)
-  ticker(5000).Subscribe(spawn)  
+  function burwor() { Burwor(maze, messageQueue, targets, r) }
+  function garwor() { Garwor(maze, messageQueue, targets, r) } 
+  _.range(0, 5).forEach(burwor)
+  messageQueue.ofType("hit")
+    .Where(function (hit) { return hit.target.monster })
+    .Delay(2000)
+    .Subscribe(garwor)                               
+  ticker(5000)
+    .Where(function() { return (targets.count(Monsters.monsterFilter) < 10) })
+    .Subscribe(burwor)                               
 }       
 Monsters.monsterFilter = function(target) { return target.monster }  
-
 
 function KeyMap(directionKeyMap, fireKey) {
 	return {
@@ -145,15 +145,15 @@ function FigureImage(imgPrefix, animCount, animCycle) {
 }
 
 function Burwor(maze, messageQueue, targets, r) {
-  return Monster(FigureImage("burwor", 2, 10), maze, messageQueue, targets, r)
+  return Monster(FigureImage("burwor", 2, 10), 5000, maze, messageQueue, targets, r)
 }
 
 function Garwor(maze, messageQueue, targets, r) {  
-  return Monster(FigureImage("garwor", 3, 2), maze, messageQueue, targets, r)
+  return Monster(FigureImage("garwor", 3, 2), 2000, maze, messageQueue, targets, r)
 }
 
-function Monster(image, maze, messageQueue, targets, r) {
-  var fire = ticker(7000)
+function Monster(image, fireInterval, maze, messageQueue, targets, r) {
+  var fire = ticker(fireInterval).Where( function() { return Math.random() < 0.1 })
   var direction = MessageQueue()
   function access(pos) { return maze.isAccessibleByMonster(pos, 16) }
   var burwor = Figure(maze.randomFreePos(function(pos) { 
