@@ -150,13 +150,11 @@ function Burwor(maze, messageQueue, targets, r) {
     return access(pos) && targets.select(function(target){ return target.player && target.inRange(pos, 100) }).length == 0
   }), FigureImage("burwor", 10), ControlInput(direction, fire), maze, access, messageQueue, r)
   burwor.monster = true
-  var current = left;  
-  direction.plug(burwor.streams.position.SampledBy(gameTicker).Select(function(status) {
+  direction.plug(burwor.streams.position.SampledBy(gameTicker).Scan(left, function(current, status) {
     function canMove(dir) { return access(status.pos.add(dir)) }
 	  if (canMove(current)) return current
 	  var possible = _.select([left, right, up, down], canMove)
-	  current = possible[randomInt(possible.length)]
-	  return current
+	  return possible[randomInt(possible.length)]
   }).StartWith(left))
 }
 
