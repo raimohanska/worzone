@@ -346,7 +346,7 @@ Rx.Observable.CombineAll = function(streams, combinator) {
 Rx.Observable.CombineLatestAsArray = function(streams) {   
 	return Rx.Observable.CombineAll(streams, function(s1, s2) { return s1.CombineLatest(s2, concatArrays)})  
 }
-function toArray(x) { return !x ? [] : (Array.isArray(x) ? x : [x])}
+function toArray(x) { return !x ? [] : (_.isArray(x) ? x : [x])}
 function concatArrays(a1, a2) { return toArray(a1).concat(toArray(a2)) }
 var gameTicker = ticker(delay)
 function ticker(interval) {
