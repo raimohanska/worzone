@@ -263,7 +263,7 @@ function Maze(raphael, blockSize) {
 	  + "* *******  ******* *\n"
 	  + "*                  *\n"
 	  + "*1****************2*\n"
-	  + "********************\n"
+	  + "***XXXXXXXXXXXXXX***\n"
 	data = data.split("\n");
 	var width = data[0].length
 	var height = data.length
