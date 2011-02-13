@@ -9,8 +9,8 @@ $(function() {
   Monsters(maze, messageQueue, targets, r)
   Players(maze, messageQueue, targets, r)
 
-  messageQueue.ofType("fire").Subscribe(function(state) { 
-	  Bullet(state.pos, state.dir, maze, targets, messageQueue, r) 
+  messageQueue.ofType("fire").Subscribe(function(fire) { 
+	  Bullet(fire.pos, fire.shooter, fire.dir, maze, targets, messageQueue, r) 
   })                    
 })   
 
@@ -21,7 +21,7 @@ function Players(maze, messageQueue, targets, r) {
   messageQueue.ofType("hit").Where(function (hit) { return hit.target.player }).Subscribe(function(hit) {hit.target.player.join()})                               
   var player1 = Player(1, KeyMap([[87, up], [83, down], [65, left], [68, right]], 70), messageQueue)
   var player2 = Player(2, KeyMap([[38, up], [40, down], [37, left], [39, right]], 189), messageQueue)
-}                     
+}
 
 function Monsters(maze, messageQueue, targets, r) {
   function burwor() { Burwor(maze, messageQueue, targets, r) }
@@ -48,11 +48,21 @@ function Player(id, keyMap, messageQueue) {
 	var player = {
 		id : id,
 		keyMap : keyMap,
-		join : function() { messageQueue.push({ message : "join", player : this}) }
+		join : function() { messageQueue.push({ message : "join", player : this}) },
+		toString : function() { return "Player " + id}
 	}             
+	Score(player, messageQueue)
 	player.join()	
 	return player;
 }
+
+function Score(player, messageQueue) {
+  messageQueue.ofType("hit")
+    .Where(function(hit) { return hit.shooter.player} )
+    .Subscribe(function(hit) {
+	  console.log(hit.target.points + " go to " + hit.shooter.player)
+  	})
+}             
 
 function ControlInput(directionInput, fireInput) {
     return {directionInput : directionInput, fireInput : fireInput}
@@ -85,7 +95,7 @@ function LatestValueHolder(stream) {
 	return { value : function() { return value }}
 }
 
-function Bullet(startPos, velocity, maze, targets, messageQueue, r) {      
+function Bullet(startPos, shooter, velocity, maze, targets, messageQueue, r) {      
   var targetFilter = always(true)
 	var radius = 3
 	var bullet = r.circle(startPos.x, startPos.y, radius).attr({fill: "#f00"})
@@ -95,7 +105,7 @@ function Bullet(startPos, velocity, maze, targets, messageQueue, r) {
 	var collision = unlimitedPosition.Where(function(pos) { return !maze.isAccessible(pos, radius, radius) }).Take(1)   
 	var hit = unlimitedPosition
 	  .Where(function(pos) { return targets.hit(pos, targetFilter) })
-	  .Select(function(pos) { return { message : "hit", target : targets.hit(pos, targetFilter)}})
+	  .Select(function(pos) { return { message : "hit", target : targets.hit(pos, targetFilter), shooter : shooter}})
 	  .Take(1)
 	var hitOrCollision = collision.Merge(hit)
 	var position = unlimitedPosition.TakeUntil(hitOrCollision)
@@ -113,13 +123,13 @@ function PlayerFigure(player, maze, messageQueue, targets, r) {
   function access(pos) { return maze.isAccessible(pos, 16) }
   var man = Figure(startPos, FigureImage("man", 2, 2), controlInput, maze, access, messageQueue, r)
   man.player = player
-	var hitByMonster = man.streams.position
+  man.points = 1000
+  var hitByMonster = man.streams.position
 	  .SampledBy(gameTicker)
 	  .Where(function(status) { return targets.inRange(status.pos, man.radius, Monsters.monsterFilter) })
 	  .Select(function(pos) { return { message : "hit", target : man}})
 	  .Take(1)
-	toConsole(hitByMonster, "monsta hit")
-	messageQueue.plug(hitByMonster)
+  messageQueue.plug(hitByMonster)
   return man
 }
 
@@ -145,22 +155,23 @@ function FigureImage(imgPrefix, animCount, animCycle) {
 }
 
 function Burwor(maze, messageQueue, targets, r) {
-  return Monster(FigureImage("burwor", 2, 10), 5000, maze, messageQueue, targets, r)
+  return Monster(FigureImage("burwor", 2, 10), 100, 5000, maze, messageQueue, targets, r)
 }
 
 function Garwor(maze, messageQueue, targets, r) {  
-  return Monster(FigureImage("garwor", 3, 2), 2000, maze, messageQueue, targets, r)
+  return Monster(FigureImage("garwor", 3, 2), 200, 2000, maze, messageQueue, targets, r)
 }
 
-function Monster(image, fireInterval, maze, messageQueue, targets, r) {
+function Monster(image, points, fireInterval, maze, messageQueue, targets, r) {
   var fire = ticker(fireInterval).Where( function() { return Math.random() < 0.1 })
   var direction = MessageQueue()
   function access(pos) { return maze.isAccessibleByMonster(pos, 16) }
-  var burwor = Figure(maze.randomFreePos(function(pos) { 
+  var monster = Figure(maze.randomFreePos(function(pos) { 
     return access(pos) && targets.select(function(target){ return target.player && target.inRange(pos, 100) }).length == 0
   }), image, ControlInput(direction, fire), maze, access, messageQueue, r)
-  burwor.monster = true
-  direction.plug(burwor.streams.position.SampledBy(gameTicker).Scan(left, function(current, status) {
+  monster.monster = true      
+  monster.points = points
+  direction.plug(monster.streams.position.SampledBy(gameTicker).Scan(left, function(current, status) {
     function canMove(dir) { return access(status.pos.add(dir)) }
 	  if (canMove(current)) return current
 	  var possible = _.select([left, right, up, down], canMove)
@@ -200,7 +211,7 @@ function Figure(startPos, image, controlInput, maze, access, messageQueue, r) {
     image.animate(figure, status)    
 
     var fire = status.SampledBy(controlInput.fireInput).Select(function(status) { 
-  	  return {message : "fire", pos : status.pos.add(status.dir.withLength(radius + 5)), dir : status.dir} 
+  	  return {message : "fire", pos : status.pos.add(status.dir.withLength(radius + 5)), dir : status.dir, shooter : figure} 
     }).TakeUntil(hit)
 
     messageQueue.plug(status)
@@ -336,6 +347,7 @@ function randomInt(limit) { return Math.floor(Math.random() * limit) }
 function identity(x) { return x }
 function first(xs) { return xs ? xs[0] : undefined}
 function latter (_, second) { return second }      
+function extractProperty(property) { return function(x) { return x.property } }
 Rx.Observable.prototype.CombineWithLatestOf = function(otherStream, combinator) {
 	var latest
 	otherStream.Subscribe(function(value) { latest = value })
