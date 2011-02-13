@@ -20,17 +20,18 @@ $(function() {
 })
 
 function GameSounds(messageQueue, audio) {
-  ticker(500)
-    .Scan(1, function(counter, _) { return counter % 3 + 1} )
-    .Subscribe(function(counter) {
-       audio.play("move" + counter)
-    })    
-  messageQueue.ofType("move")
-    .Where(function (move) { return move.object.player && move.object.player.id == 1 }).Take(1)
-    .Subscribe(audio.playSound("join1"))
-  messageQueue.ofType("move")
-    .Where(function (move) { return move.object.player && move.object.player.id == 2 }).Take(1)
-    .Subscribe(audio.playSound("join2"))
+  function joinSound(id) {
+    messageQueue.ofType("move")
+      .Where(function (move) { return move.object.player && move.object.player.id == id }).Take(1)
+      .Subscribe(audio.playSound("join" + id))    
+  } 
+  function sequence(delay, count) {
+    return ticker(delay).Scan(1, function(counter, _) { return counter % count + 1} )    
+  }
+  sequence(500, 3)
+    .Subscribe(function(counter) { audio.playSound("move" + counter)() })
+  joinSound(1)
+  joinSound(2)
   messageQueue.ofType("fire").Subscribe(audio.playSound("fire"))
   messageQueue.ofType("hit").Subscribe(audio.playSound("explosion"))  
 }         
@@ -55,13 +56,8 @@ function Audio() {
 	  if (on) getSound(soundName).play()
 	}
 	return {
-	  play : play,
-	  playSound : function(soundName) {
-	    return function() { play(soundName) }
-	  },
-	  toggle : function() {
-	    on = !on;
-	  }
+	  playSound : function(soundName) { return function() { play(soundName) }},
+	  toggle : function() { on = !on; }
 	}
 }
 
