@@ -11,12 +11,7 @@ $(function() {
 
   messageQueue.ofType("fire").Subscribe(function(fire) { 
 	  Bullet(fire.pos, fire.shooter, fire.dir, maze, targets, messageQueue, r) 
-  })       
-  
-  messageQueue.ofType("score").Subscribe(function(score) {
-    var pos = maze.playerScorePos(score.player)
-    r.text(pos.x, pos.y, score.score).attr({ fill : "#ff0"})
-  })             
+  })         
 })   
 
 function Players(maze, messageQueue, targets, r) {
@@ -24,8 +19,8 @@ function Players(maze, messageQueue, targets, r) {
 	  PlayerFigure(join.player, maze, messageQueue, targets, r)
   })
   messageQueue.ofType("hit").Where(function (hit) { return hit.target.player }).Subscribe(function(hit) {hit.target.player.join()})                               
-  var player1 = Player(1, KeyMap([[87, up], [83, down], [65, left], [68, right]], 70), messageQueue, r)
-  var player2 = Player(2, KeyMap([[38, up], [40, down], [37, left], [39, right]], 189), messageQueue, r)
+  var player1 = Player(1, KeyMap([[87, up], [83, down], [65, left], [68, right]], 70), maze, messageQueue, r)
+  var player2 = Player(2, KeyMap([[38, up], [40, down], [37, left], [39, right]], 189), maze, messageQueue, r)
 }
 
 function Monsters(maze, messageQueue, targets, r) {
@@ -49,19 +44,19 @@ function KeyMap(directionKeyMap, fireKey) {
 	}
 }
 
-function Player(id, keyMap, messageQueue, r) {
+function Player(id, keyMap, maze, messageQueue, r) {
 	var player = {
 		id : id,
 		keyMap : keyMap,
 		join : function() { messageQueue.push({ message : "join", player : this}) },
 		toString : function() { return "Player " + id}
 	}             
-	Score(player, messageQueue, r)
+	Score(player, maze, messageQueue, r)
 	player.join()	
 	return player;
 }
 
-function Score(player, messageQueue, r) {                                        
+function Score(player, maze, messageQueue, r) {                                        
   var score = messageQueue.ofType("hit")
     .Where(function(hit) { return hit.shooter && hit.shooter.player == player} )
     .Select(function(hit) { return hit.target.points })
@@ -69,6 +64,11 @@ function Score(player, messageQueue, r) {
     .StartWith(0)
   score.Subscribe(function(points) { console.log(player + " has " + points + " points") })
   messageQueue.plug(score.Select(function(points) { return { message : "score", player : player, score : points} } ))
+
+  var pos = maze.playerScorePos(player)
+  var scoreDisplay = r.text(pos.x, pos.y, "0").attr({ fill : "#ff0"})
+
+  score.Subscribe(function(points) { scoreDisplay.attr({ text : points }) })               
 }             
 
 function ControlInput(directionInput, fireInput) {
