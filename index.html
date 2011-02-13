@@ -8,13 +8,22 @@
 	<script type="text/javascript" src="raphael.js"></script>
 	<script type="text/javascript" src="worzone.js"></script>
 	<style type="text/css"> 
-		#instructions { position:absolute; left:820px;}
-	</style>
+		#instructions, #controls { position:absolute; left:820px;}
+		#controls {top:200px;}
+	</style>                
+	<audio src="audio/intro1.mp3" autoplay="true" controls="controls">
+		No audio, sorry
+	</audio>	
 </head>
 <body>   
 	<div id="instructions">
 		<p>Left: a,s,d,w,f</p>
 		<p>Right: arrow keys, -</p>
 	</div>
+	<div id="controls">
+		<label for="sound">sound</label>
+		<input type="checkbox" value="sound" id="sound"/>
+	</div>
+	
 </body>
 </html>

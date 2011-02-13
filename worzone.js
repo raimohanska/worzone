@@ -11,8 +11,59 @@ $(function() {
 
   messageQueue.ofType("fire").Subscribe(function(fire) { 
 	  Bullet(fire.pos, fire.shooter, fire.dir, maze, targets, messageQueue, r) 
-  })         
-})   
+  })                 
+  
+  var audio = Audio()              
+  GameSounds(messageQueue, audio)
+  
+  $('#sound').click(function() { audio.toggle() })
+})
+
+function GameSounds(messageQueue, audio) {
+  ticker(500)
+    .Scan(1, function(counter, _) { return counter % 3 + 1} )
+    .Subscribe(function(counter) {
+       audio.play("move" + counter)
+    })    
+  messageQueue.ofType("move")
+    .Where(function (move) { return move.object.player && move.object.player.id == 1 }).Take(1)
+    .Subscribe(audio.playSound("join1"))
+  messageQueue.ofType("move")
+    .Where(function (move) { return move.object.player && move.object.player.id == 2 }).Take(1)
+    .Subscribe(audio.playSound("join2"))
+  messageQueue.ofType("fire").Subscribe(audio.playSound("fire"))
+  messageQueue.ofType("hit").Subscribe(audio.playSound("explosion"))  
+}         
+
+function Audio() {   
+  var on = false
+	var sounds = {}      
+	                      
+	function loadSound(soundName) {
+    var audioElement = document.createElement('audio')
+  	audioElement.setAttribute('src', "audio/" + soundName + ".ogg")
+  	return audioElement
+  }
+  
+	function getSound(soundName) {
+	  if (!sounds[soundName]) {
+	    sounds[soundName] = loadSound(soundName)
+	  }                                         
+	  return sounds[soundName]        	  
+	}              
+	function play(soundName) {   
+	  if (on) getSound(soundName).play()
+	}
+	return {
+	  play : play,
+	  playSound : function(soundName) {
+	    return function() { play(soundName) }
+	  },
+	  toggle : function() {
+	    on = !on;
+	  }
+	}
+}
 
 function Players(maze, messageQueue, targets, r) {
   messageQueue.ofType("join").Subscribe(function(join) {
