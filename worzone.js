@@ -63,7 +63,7 @@ function Player(id, keyMap, messageQueue, r) {
 
 function Score(player, messageQueue, r) {                                        
   var score = messageQueue.ofType("hit")
-    .Where(function(hit) { return hit.shooter.player == player} )
+    .Where(function(hit) { return hit.shooter && hit.shooter.player == player} )
     .Select(function(hit) { return hit.target.points })
     .Scan(0, function(current, delta) { return current + delta })
     .StartWith(0)
