@@ -56,11 +56,11 @@ function Player(id, keyMap, messageQueue) {
 	return player;
 }
 
-function Score(player, messageQueue) {
+function Score(player, messageQueue) {                                        
   messageQueue.ofType("hit")
-    .Where(function(hit) { return hit.shooter.player} )
+    .Where(function(hit) { return hit.shooter.player == player} )
     .Subscribe(function(hit) {
-	  console.log(hit.target.points + " go to " + hit.shooter.player)
+	  console.log(hit.target.points + " go to " + player)
   	})
 }             
 
@@ -106,7 +106,7 @@ function Bullet(startPos, shooter, velocity, maze, targets, messageQueue, r) {
 	var hit = unlimitedPosition
 	  .Where(function(pos) { return targets.hit(pos, targetFilter) })
 	  .Select(function(pos) { return { message : "hit", target : targets.hit(pos, targetFilter), shooter : shooter}})
-	  .Take(1)
+	  .Take(1) 
 	var hitOrCollision = collision.Merge(hit)
 	var position = unlimitedPosition.TakeUntil(hitOrCollision)
 	
@@ -210,7 +210,7 @@ function Figure(startPos, image, controlInput, maze, access, messageQueue, r) {
     
     image.animate(figure, status)    
 
-    var fire = status.SampledBy(controlInput.fireInput).Select(function(status) { 
+    var fire = status.SampledBy(controlInput.fireInput).Select(function(status) {             
   	  return {message : "fire", pos : status.pos.add(status.dir.withLength(radius + 5)), dir : status.dir, shooter : figure} 
     }).TakeUntil(hit)
 
@@ -228,7 +228,7 @@ function Figure(startPos, image, controlInput, maze, access, messageQueue, r) {
 function Keyboard() {
 	var allKeyUps = $(document).toObservable("keyup")
 	var allKeyDowns = $(document).toObservable("keydown")
-	allKeyDowns.Subscribe(function(event) {console.log(event.keyCode)})
+	//allKeyDowns.Subscribe(function(event) {console.log(event.keyCode)})
 	function keyCodeIs(keyCode) { return function(event) { return event.keyCode == keyCode} }
 	function keyUps(keyCode) { return allKeyUps.Where(keyCodeIs(keyCode)) }
 	function keyDowns(keyCode) { return allKeyDowns.Where(keyCodeIs(keyCode)) }
@@ -248,12 +248,14 @@ function Keyboard() {
 
 function MessageQueue() {
     var observers = []
-    var messageQueue = Rx.Observable.Create(function(observer) { 
+    var messageQueue = Rx.Observable.Create(function(observer) {                               
         observers.push(observer)
-		    return function() { observers.splice(observers.indexOf(observer), 1)}
+		    return function() { 
+		      observers.splice(observers.indexOf(observer), 1)
+		    }
     })    
     messageQueue.ofType = function(messageType) { return messageQueue.Where(function(message) { return message.message == messageType})}
-    messageQueue.push = function (message) {  	
+    messageQueue.push = function (message) {  	       
         observers.map(identity).forEach(function(observer) {
             observer.OnNext(message)
         });
