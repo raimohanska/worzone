@@ -11,7 +11,12 @@ $(function() {
 
   messageQueue.ofType("fire").Subscribe(function(fire) { 
 	  Bullet(fire.pos, fire.shooter, fire.dir, maze, targets, messageQueue, r) 
-  })                    
+  })       
+  
+  messageQueue.ofType("score").Subscribe(function(score) {
+    var pos = maze.playerScorePos(score.player)
+    r.text(pos.x, pos.y, score.score).attr({ fill : "#ff0"})
+  })             
 })   
 
 function Players(maze, messageQueue, targets, r) {
@@ -19,8 +24,8 @@ function Players(maze, messageQueue, targets, r) {
 	  PlayerFigure(join.player, maze, messageQueue, targets, r)
   })
   messageQueue.ofType("hit").Where(function (hit) { return hit.target.player }).Subscribe(function(hit) {hit.target.player.join()})                               
-  var player1 = Player(1, KeyMap([[87, up], [83, down], [65, left], [68, right]], 70), messageQueue)
-  var player2 = Player(2, KeyMap([[38, up], [40, down], [37, left], [39, right]], 189), messageQueue)
+  var player1 = Player(1, KeyMap([[87, up], [83, down], [65, left], [68, right]], 70), messageQueue, r)
+  var player2 = Player(2, KeyMap([[38, up], [40, down], [37, left], [39, right]], 189), messageQueue, r)
 }
 
 function Monsters(maze, messageQueue, targets, r) {
@@ -44,26 +49,26 @@ function KeyMap(directionKeyMap, fireKey) {
 	}
 }
 
-function Player(id, keyMap, messageQueue) {
+function Player(id, keyMap, messageQueue, r) {
 	var player = {
 		id : id,
 		keyMap : keyMap,
 		join : function() { messageQueue.push({ message : "join", player : this}) },
 		toString : function() { return "Player " + id}
 	}             
-	Score(player, messageQueue)
+	Score(player, messageQueue, r)
 	player.join()	
 	return player;
 }
 
-function Score(player, messageQueue) {                                        
-  messageQueue.ofType("hit")
+function Score(player, messageQueue, r) {                                        
+  var score = messageQueue.ofType("hit")
     .Where(function(hit) { return hit.shooter.player == player} )
     .Select(function(hit) { return hit.target.points })
     .Scan(0, function(current, delta) { return current + delta })
-    .Subscribe(function(hit) {
-	  console.log(player + " has " + hit + " points")
-  	})
+    .StartWith(0)
+  score.Subscribe(function(points) { console.log(player + " has " + points + " points") })
+  messageQueue.plug(score.Select(function(points) { return { message : "score", player : player, score : points} } ))
 }             
 
 function ControlInput(directionInput, fireInput) {
@@ -286,7 +291,7 @@ function Maze(raphael, blockSize) {
 	  + "* *******  ******* *\n"
 	  + "*                  *\n"
 	  + "*1****************2*\n"
-	  + "***XXXXXXXXXXXXXX***\n"
+	  + "***5XXXXXXXXXXXX6***\n"
 	data = data.split("\n");
 	var width = data[0].length
 	var height = data.length
@@ -327,6 +332,10 @@ function Maze(raphael, blockSize) {
 	return {
 		playerStartPos : function(player) {
 			return toPixels(findMazePos("" + player.id))
+		},      
+		playerScorePos : function(player) {
+		  var number = Number(player.id) + 4
+		  return toPixels(findMazePos("" + number))
 		},
 		isAccessible : function(pos, objectRadiusX, objectRadiusY) {
 		  return accessible(pos, objectRadiusX, objectRadiusY, function(blockPos) { return !isWall(blockPos) })
