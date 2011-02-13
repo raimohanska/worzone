@@ -59,8 +59,10 @@ function Player(id, keyMap, messageQueue) {
 function Score(player, messageQueue) {                                        
   messageQueue.ofType("hit")
     .Where(function(hit) { return hit.shooter.player == player} )
+    .Select(function(hit) { return hit.target.points })
+    .Scan(0, function(current, delta) { return current + delta })
     .Subscribe(function(hit) {
-	  console.log(hit.target.points + " go to " + player)
+	  console.log(player + " has " + hit + " points")
   	})
 }             
 
