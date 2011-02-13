@@ -1,5 +1,4 @@
 $(function() {
-  // graphics setup
   var bounds = Rectangle(0, 0, 800, 600)
   var r = Raphael(10, 10, bounds.width, bounds.height);
   r.rect(bounds.x, bounds.y, bounds.width, bounds.height).attr({fill : "#000"})
@@ -7,33 +6,36 @@ $(function() {
   var messageQueue = MessageQueue()  
   var targets = Targets(messageQueue)
 
-  messageQueue.ofType("join").Subscribe(function(join) {
-	  PlayerFigure(join.player, maze, messageQueue, targets, r)
-  })
-
-  var player1 = Player(1, KeyMap([[87, up], [83, down], [65, left], [68, right]], 70), messageQueue)
-  var player2 = Player(2, KeyMap([[38, up], [40, down], [37, left], [39, right]], 189), messageQueue)
   Monsters(maze, messageQueue, targets, r)
+  Players(maze, messageQueue, targets, r)
 
   messageQueue.ofType("fire").Subscribe(function(state) { 
 	  Bullet(state.pos, state.dir, maze, targets, messageQueue, r) 
   })                    
-  
-  function isPlayerHit(hit) { return hit.target.player }
-  messageQueue.ofType("hit").Where(isPlayerHit).Subscribe(function(hit) {hit.target.player.join()})                               
-  console.log('started')
-})                        
+})   
+
+function Players(maze, messageQueue, targets, r) {
+  messageQueue.ofType("join").Subscribe(function(join) {
+	  PlayerFigure(join.player, maze, messageQueue, targets, r)
+  })
+  messageQueue.ofType("hit").Where(function (hit) { return hit.target.player }).Subscribe(function(hit) {hit.target.player.join()})                               
+  var player1 = Player(1, KeyMap([[87, up], [83, down], [65, left], [68, right]], 70), messageQueue)
+  var player2 = Player(2, KeyMap([[38, up], [40, down], [37, left], [39, right]], 189), messageQueue)
+}                     
 
 function Monsters(maze, messageQueue, targets, r) {
-  function spawn() {
-    if (targets.count(Monsters.monsterFilter) < 10)
-      Burwor(maze, messageQueue, targets, r)
-  }
-  _.range(0, 5).forEach(spawn)
-  ticker(5000).Subscribe(spawn)  
+  function burwor() { Burwor(maze, messageQueue, targets, r) }
+  function garwor() { Garwor(maze, messageQueue, targets, r) } 
+  _.range(0, 5).forEach(burwor)
+  messageQueue.ofType("hit")
+    .Where(function (hit) { return hit.target.monster })
+    .Delay(2000)
+    .Subscribe(garwor)                               
+  ticker(5000)
+    .Where(function() { return (targets.count(Monsters.monsterFilter) < 10) })
+    .Subscribe(burwor)                               
 }       
 Monsters.monsterFilter = function(target) { return target.monster }  
-
 
 function KeyMap(directionKeyMap, fireKey) {
 	return {
@@ -109,7 +111,7 @@ function PlayerFigure(player, maze, messageQueue, targets, r) {
   var controlInput = ControlInput(directionInput, fireInput)
   var startPos = maze.playerStartPos(player)
   function access(pos) { return maze.isAccessible(pos, 16) }
-  var man = Figure(startPos, FigureImage("man", 2), controlInput, maze, access, messageQueue, r)
+  var man = Figure(startPos, FigureImage("man", 2, 2), controlInput, maze, access, messageQueue, r)
   man.player = player
 	var hitByMonster = man.streams.position
 	  .SampledBy(gameTicker)
@@ -121,13 +123,13 @@ function PlayerFigure(player, maze, messageQueue, targets, r) {
   return man
 }
 
-function FigureImage(imgPrefix, animCycle) {
+function FigureImage(imgPrefix, animCount, animCycle) {
   return {
     create : function(startPos, radius, r) {
       return r.image(imgPrefix + "-left-1.png", startPos.x - radius, startPos.y - radius, radius * 2, radius * 2)
     },
     animate : function(figure, statusStream) {
-      var animationSequence = statusStream.BufferWithCount(animCycle).Scan(1, function(prev, _) { return prev % 2 + 1})
+      var animationSequence = statusStream.BufferWithCount(animCycle).Scan(1, function(prev, _) { return prev % animCount + 1})
       var animation = statusStream.CombineLatest(animationSequence, function(status, index) { 
         if (status.dir == left) {
           return { image : imgPrefix + "-left-" + index + ".png", angle : 0 }
@@ -143,20 +145,26 @@ function FigureImage(imgPrefix, animCycle) {
 }
 
 function Burwor(maze, messageQueue, targets, r) {
-  var fire = ticker(7000)
+  return Monster(FigureImage("burwor", 2, 10), 5000, maze, messageQueue, targets, r)
+}
+
+function Garwor(maze, messageQueue, targets, r) {  
+  return Monster(FigureImage("garwor", 3, 2), 2000, maze, messageQueue, targets, r)
+}
+
+function Monster(image, fireInterval, maze, messageQueue, targets, r) {
+  var fire = ticker(fireInterval).Where( function() { return Math.random() < 0.1 })
   var direction = MessageQueue()
   function access(pos) { return maze.isAccessibleByMonster(pos, 16) }
   var burwor = Figure(maze.randomFreePos(function(pos) { 
     return access(pos) && targets.select(function(target){ return target.player && target.inRange(pos, 100) }).length == 0
-  }), FigureImage("burwor", 10), ControlInput(direction, fire), maze, access, messageQueue, r)
+  }), image, ControlInput(direction, fire), maze, access, messageQueue, r)
   burwor.monster = true
-  var current = left;  
-  direction.plug(burwor.streams.position.SampledBy(gameTicker).Select(function(status) {
+  direction.plug(burwor.streams.position.SampledBy(gameTicker).Scan(left, function(current, status) {
     function canMove(dir) { return access(status.pos.add(dir)) }
 	  if (canMove(current)) return current
 	  var possible = _.select([left, right, up, down], canMove)
-	  current = possible[randomInt(possible.length)]
-	  return current
+	  return possible[randomInt(possible.length)]
   }).StartWith(left))
 }
 
