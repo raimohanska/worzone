@@ -153,16 +153,16 @@ function Bullet(startPos, shooter, velocity, maze, targets, messageQueue, r) {
 	var radius = 3
 	var bullet = r.circle(startPos.x, startPos.y, radius).attr({fill: "#f00"})
 	bullet.radius = radius
-	var movements = gameTicker.Select(function(_) {return velocity})
+	var movements = gameTicker.Multiply(20).Select(function(_) {return velocity})
 	var unlimitedPosition = movements
-		.Scan(startPos, function(pos, move) { return pos.add(move.times(20)) })
+		.Scan(startPos, function(pos, move) { return pos.add(move) })
 	var collision = unlimitedPosition.Where(function(pos) { return !maze.isAccessible(pos, radius, radius) }).Take(1)   
 	var hit = unlimitedPosition
 	  .Where(function(pos) { return targets.hit(pos, targetFilter) })
 	  .Select(function(pos) { return { message : "hit", target : targets.hit(pos, targetFilter), shooter : shooter}})
 	  .Take(1) 
 	var hitOrCollision = collision.Merge(hit)
-	var position = unlimitedPosition.TakeUntil(hitOrCollision)
+	var position = unlimitedPosition.SampledBy(gameTicker).TakeUntil(hitOrCollision)
 	
   position.Subscribe(function (pos) { bullet.animate({cx : pos.x, cy : pos.y}, delay) })
   hitOrCollision.Subscribe(function(pos) { bullet.remove() }) 
@@ -464,6 +464,12 @@ Rx.Observable.prototype.CombineWithLatestOf = function(otherStream, combinator) 
 Rx.Observable.prototype.SampledBy = function(otherStream) {
   return otherStream.CombineWithLatestOf(this, latter)
 }
+Rx.Observable.prototype.Multiply = function(times) {
+  var result = MessageQueue()                       
+  var source = this
+  _.range(1, times).forEach(function() { result.plug(source) })
+  return result
+}
 Rx.Observable.CombineAll = function(streams, combinator) {
 	var stream = streams[0]
 	for (var i = 1; i < streams.length; i++) {
@@ -473,7 +479,7 @@ Rx.Observable.CombineAll = function(streams, combinator) {
 }
 Rx.Observable.CombineLatestAsArray = function(streams) {   
 	return Rx.Observable.CombineAll(streams, function(s1, s2) { return s1.CombineLatest(s2, concatArrays)})  
-}
+}                        
 function toArray(x) { return !x ? [] : (_.isArray(x) ? x : [x])}
 function concatArrays(a1, a2) { return toArray(a1).concat(toArray(a2)) }
 var gameTicker = ticker(delay)
