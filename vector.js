@@ -12,7 +12,7 @@ Vector2D.prototype = {
 		// Vector2D -> Vector2D
 		add : function(other) { return new Vector2D(this.x + other.x, this.y + other.y) },
 		// Vector2D -> Vector2D
-		subtract : function(other) { return this.add(other.invert()) },
+		subtract : function(other) { return new Vector2D(this.x - other.x, this.y - other.y) },
 		// Unit -> Number
 		getLength : function() { return Math.sqrt(this.x * this.x + this.y * this.y) },
 		// Number -> Vector2D
