@@ -221,9 +221,11 @@ function Monster(image, points, fireInterval, maze, messageQueue, targets, r) {
   var fire = ticker(fireInterval).Where( function() { return Math.random() < 0.1 })
   var direction = MessageQueue()
   function access(pos) { return maze.isAccessibleByMonster(pos, 16) }
-  var monster = Figure(maze.randomFreePos(function(pos) { 
+  var startPos = maze.randomFreePos(function(pos) { 
     return access(pos) && targets.select(function(target){ return target.player && target.inRange(pos, 100) }).length == 0
-  }), image, ControlInput(direction, fire), maze, access, messageQueue, r)
+  })
+  var monster = Figure(startPos, image, ControlInput(direction, fire), maze, access, messageQueue, r)
+  monster.speed = 2
   monster.monster = true      
   monster.points = points
   direction.plug(monster.streams.position.SampledBy(gameTicker).Scan(left, function(current, status) {
@@ -324,31 +326,31 @@ function MessageQueue() {
 }
 
 function Maze(raphael) {
-	var data 
-	  = "*******************\n"
-	  + "*                 *\n"
-	  + "* *******  ****** *\n"
-	  + "* *             * *\n"
-	  + "* *   *******   * *\n"
-	  + "* *   *     *   * *\n"
-	  + "*                  *\n"
-	  + "* *             * *\n"
-	  + "* *   *******   * *\n"
-	  + "* *             * *\n"
-	  + "* *             * *\n"
-	  + "* *             * *\n"
-	  + "* *******  ****** *\n"
-	  + "*                 *\n"
-	  + "* *************** *\n"
-	  + "*1*             *2*\n"
-	  + "***5XXXXXXXXXXXX6**\n"
-	data = data.split("\n");
-	var blockSize = 40
+	var data =
+	  [ "*******************",
+	    "*                 *",
+	    "* *******  ****** *",
+	    "* *             * *",
+	    "* *   *******   * *",
+	    "* *   *     *   * *",
+	    "* *             * *",
+	    "*                 *",
+	    "* *   *******   * *",
+	    "* *             * *",
+	    "* *             * *",
+	    "* *             * *",
+	    "* *******  ****** *",
+	    "*                 *",
+	    "* *************** *",
+	    "*1*XXXXXXXXXXXXX*2*",
+	    "***5XXXXXXXXXXX6***" ]
+	var blockSize = 50
 	var wall = 4           
 	var fullBlock = blockSize + wall
 	var width = data[0].length
 	var height = data.length
 	function charAt(blockPos) {
+	  if (blockPos.y >= height || blockPos.x >= width || blockPos.x < 0 || blockPos.y < 0) return "X"
 		return data[blockPos.y][blockPos.x]
 	}
 	function isWall(blockPos) { return charAt(blockPos) == "*" }
@@ -367,13 +369,14 @@ function Maze(raphael) {
 	  function size(x) { return ( x % 2 == 0) ? wall : blockSize}
 	  return Point(size(blockPos.x), size(blockPos.y))
 	}
+  function toBlock(x) {
+    var fullBlocks = Math.floor(x / fullBlock)
+    var remainder = x - (fullBlocks * fullBlock)
+    var wallToAdd = ((remainder >= wall) ? 1 : 0)
+    return fullBlocks * 2 + wallToAdd
+  }
 	function toBlocks(pixelPos) { 
-	  function pixelToBlock(x) {
-	    var fullBlocks = Math.floor(x / fullBlock)
-	    var remainder = x - fullBlocks * fullBlock
-	    return fullBlocks + (remainder > wall) ? 1 : 0
-	  }
-	  return Point(pixelToBlock(pixelPos.x), pixelToBlock(pixelPos.y))
+	  return Point(toBlock(pixelPos.x), toBlock(pixelPos.y))
 	}
 	function forEachBlock(fn) {
 		for (var x = 0; x < width; x++) {
@@ -398,14 +401,16 @@ function Maze(raphael) {
 	    var corner = blockCorner(block)
 	    var size = sizeOf(block)
 	    raphael.rect(corner.x, corner.y, size.x, size.y)
-	      .attr({ stroke : "#808", "stroke-width" : 3, fill : "#404"})
+	      .attr({ stroke : "#808", fill : "#808"})
 	}})
   function accessible(pos, objectRadiusX, objectRadiusY, predicate) {
 	  if (!objectRadiusY) objectRadiusY = objectRadiusX
-		var radiusX = objectRadiusX - 1
-		var radiusY = objectRadiusY - 1
-		return predicate(toBlocks(pos.add(Point(-radiusX, -radiusY)))) && predicate(toBlocks(pos.add(Point(radiusX, radiusY))))
-			&& predicate(toBlocks(pos.add(Point(radiusX, -radiusY)))) && predicate(toBlocks(pos.add(Point(-radiusX, radiusY))))         
+		var radiusX = objectRadiusX 
+		var radiusY = objectRadiusY
+		for (var x = toBlock(pos.x - radiusX); x <= toBlock(pos.x + radiusX); x++) 
+		  for (var y = toBlock(pos.y - radiusY); y <= toBlock(pos.y + radiusY); y++)
+		    if (!predicate(Point(x, y))) return false
+		return true  
 	}
 	return {
 		playerStartPos : function(player) {
