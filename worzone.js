@@ -342,8 +342,8 @@ function Maze(raphael) {
 	    "* *******  ****** *",
 	    "*                 *",
 	    "* *************** *",
-	    "*1*XXXXXXXXXXXXX*2*",
-	    "***5XXXXXXXXXXX6***" ]
+	    "*1*5XXXXXXXXXXX6*2*",
+	    "***XXXXXXXXXXXXX***" ]
 	var blockSize = 50
 	var wall = 4           
 	var fullBlock = blockSize + wall
