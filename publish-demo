@@ -1,1 +1,1 @@
-scp * juhapajuha@secure.summitmedia.fi:web/worzone
+scp -r * juhapajuha@secure.summitmedia.fi:web/worzone

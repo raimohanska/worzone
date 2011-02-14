@@ -1,5 +1,5 @@
 $(function() {
-  var bounds = Rectangle(0, 0, 800, 600)
+  var bounds = Rectangle(0, 0, 500, 450)
   var r = Raphael(20, 20, bounds.width, bounds.height);
   var maze = Maze(r)
   var messageQueue = MessageQueue()  
