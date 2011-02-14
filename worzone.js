@@ -2,7 +2,7 @@ $(function() {
   var bounds = Rectangle(0, 0, 800, 600)
   var r = Raphael(10, 10, bounds.width, bounds.height);
   r.rect(bounds.x, bounds.y, bounds.width, bounds.height).attr({fill : "#000"})
-  var maze = Maze(r, 40)
+  var maze = Maze(r)
   var messageQueue = MessageQueue()  
   var targets = Targets(messageQueue)
 
@@ -323,7 +323,7 @@ function MessageQueue() {
     return messageQueue
 }
 
-function Maze(raphael, blockSize) {
+function Maze(raphael) {
 	var data 
 	  = "********************\n"
 	  + "*                  *\n"
@@ -341,6 +341,8 @@ function Maze(raphael, blockSize) {
 	  + "*1****************2*\n"
 	  + "***5XXXXXXXXXXXX6***\n"
 	data = data.split("\n");
+	var blockSize = 40
+	var wall = 4
 	var width = data[0].length
 	var height = data.length
 	function charAt(blockPos) {
@@ -348,7 +350,10 @@ function Maze(raphael, blockSize) {
 	}
 	function isWall(blockPos) { return charAt(blockPos) == "*" }
 	function isFree(blockPos) { return charAt(blockPos) == " " }
-	function toPixels(blockPos) { return blockPos.times(blockSize).add(Point(blockSize / 2, blockSize / 2))}
+	function toPixels(blockPos) {         
+	  
+	  return blockPos.times(blockSize).add(Point(blockSize / 2 + wall, blockSize / 2 + wall))
+	}
 	function toBlocks(pixelPos) { return pixelPos.times(1 / blockSize).floor()}
 	function forEachBlock(fn) {
 		for (var x = 0; x < width; x++) {
