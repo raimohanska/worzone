@@ -1,7 +1,6 @@
 $(function() {
   var bounds = Rectangle(0, 0, 800, 600)
-  var r = Raphael(10, 10, bounds.width, bounds.height);
-  r.rect(bounds.x, bounds.y, bounds.width, bounds.height).attr({fill : "#000"})
+  var r = Raphael(20, 20, bounds.width, bounds.height);
   var maze = Maze(r)
   var messageQueue = MessageQueue()  
   var targets = Targets(messageQueue)
@@ -395,6 +394,9 @@ function Maze(raphael) {
     }
 		return blockThat(function(x, y) { return (data[y][x] == character)})
 	}
+	var corner = blockCorner(Point(0, 0))
+	var bottomRight = blockCorner(Point(width, height)) 
+	raphael.rect(corner.x, corner.y, bottomRight.x, bottomRight.y).attr({fill : "#000"})
 	forEachBlock(function(x, y) { 
 	  var block = Point(x, y) 
 	  if (isWall(block)) { 
@@ -402,7 +404,8 @@ function Maze(raphael) {
 	    var size = sizeOf(block)
 	    raphael.rect(corner.x, corner.y, size.x, size.y)
 	      .attr({ stroke : "#808", fill : "#808"})
-	}})
+	}})                            
+  
   function accessible(pos, objectRadiusX, objectRadiusY, predicate) {
 	  if (!objectRadiusY) objectRadiusY = objectRadiusX
 		var radiusX = objectRadiusX 
