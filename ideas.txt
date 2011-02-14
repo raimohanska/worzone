@@ -1,0 +1,4 @@
+- Alpha channel for PNGs
+- PNGs to SVGs
+- Flip images using Raphaël instead of having separate gfx for different
+  directions
