@@ -325,21 +325,23 @@ function MessageQueue() {
 
 function Maze(raphael) {
 	var data 
-	  = "********************\n"
+	  = "*******************\n"
+	  + "*                 *\n"
+	  + "* *******  ****** *\n"
+	  + "* *             * *\n"
+	  + "* *   *******   * *\n"
+	  + "* *   *     *   * *\n"
 	  + "*                  *\n"
-	  + "* *******  ******* *\n"
-	  + "* *              * *\n"
-	  + "* *    ******    * *\n"
-	  + "* *    *    *    * *\n"
-	  + "*                  *\n"
-	  + "* *              * *\n"
-	  + "* *    ******    * *\n"
-	  + "* *              * *\n"
-	  + "* *              * *\n"
-	  + "* *******  ******* *\n"
-	  + "*                  *\n"
-	  + "*1****************2*\n"
-	  + "***5XXXXXXXXXXXX6***\n"
+	  + "* *             * *\n"
+	  + "* *   *******   * *\n"
+	  + "* *             * *\n"
+	  + "* *             * *\n"
+	  + "* *             * *\n"
+	  + "* *******  ****** *\n"
+	  + "*                 *\n"
+	  + "* *************** *\n"
+	  + "*1*             *2*\n"
+	  + "***5XXXXXXXXXXXX6**\n"
 	data = data.split("\n");
 	var blockSize = 40
 	var wall = 4           
@@ -353,8 +355,8 @@ function Maze(raphael) {
 	function isFree(blockPos) { return charAt(blockPos) == " " }
 	function blockCorner(blockPos) {         
 	  function blockToPixel(block) {
-	     var fullBlocks = block - (block % 2)
-	     return fullBlocks * fullBlock + (block % 2 == 1) ? wall : 0
+	     var fullBlocks = Math.floor(block / 2)
+	     return fullBlocks * fullBlock + ((block % 2 == 1) ? wall : 0)
 	  }
 	  return Point(blockToPixel(blockPos.x), blockToPixel(blockPos.y))
 	}          
@@ -390,11 +392,13 @@ function Maze(raphael) {
     }
 		return blockThat(function(x, y) { return (data[y][x] == character)})
 	}
-	forEachBlock(function(x, y) { if (isWall(Point(x, y))) { 
-	  var corner = blockCorner(x, y), 
-	      size = sizeOf(Point(x, y))
-	  raphael.rect(corner.x, corner.y, size.x, size.y)
-	    .attr({ stroke : "#808", "stroke-width" : 3, fill : "#404"})
+	forEachBlock(function(x, y) { 
+	  var block = Point(x, y) 
+	  if (isWall(block)) { 
+	    var corner = blockCorner(block)
+	    var size = sizeOf(block)
+	    raphael.rect(corner.x, corner.y, size.x, size.y)
+	      .attr({ stroke : "#808", "stroke-width" : 3, fill : "#404"})
 	}})
   function accessible(pos, objectRadiusX, objectRadiusY, predicate) {
 	  if (!objectRadiusY) objectRadiusY = objectRadiusX
