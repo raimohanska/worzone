@@ -342,7 +342,8 @@ function Maze(raphael) {
 	  + "***5XXXXXXXXXXXX6***\n"
 	data = data.split("\n");
 	var blockSize = 40
-	var wall = 4
+	var wall = 4           
+	var fullBlock = blockSize + wall
 	var width = data[0].length
 	var height = data.length
 	function charAt(blockPos) {
@@ -350,11 +351,28 @@ function Maze(raphael) {
 	}
 	function isWall(blockPos) { return charAt(blockPos) == "*" }
 	function isFree(blockPos) { return charAt(blockPos) == " " }
-	function toPixels(blockPos) {         
-	  
-	  return blockPos.times(blockSize).add(Point(blockSize / 2 + wall, blockSize / 2 + wall))
+	function blockCorner(blockPos) {         
+	  function blockToPixel(block) {
+	     var fullBlocks = block - (block % 2)
+	     return fullBlocks * fullBlock + (block % 2 == 1) ? wall : 0
+	  }
+	  return Point(blockToPixel(blockPos.x), blockToPixel(blockPos.y))
+	}          
+	function blockCenter(blockPos) {          
+	  return blockCorner(blockPos).add(sizeOf(blockPos).times(.5))
 	}
-	function toBlocks(pixelPos) { return pixelPos.times(1 / blockSize).floor()}
+	function sizeOf(blockPos) {
+	  function size(x) { return ( x % 2 == 0) ? wall : blockSize}
+	  return Point(size(blockPos.x), size(blockPos.y))
+	}
+	function toBlocks(pixelPos) { 
+	  function pixelToBlock(x) {
+	    var fullBlocks = Math.floor(x / fullBlock)
+	    var remainder = x - fullBlocks * fullBlock
+	    return fullBlocks + (remainder > wall) ? 1 : 0
+	  }
+	  return Point(pixelToBlock(pixelPos.x), pixelToBlock(pixelPos.y))
+	}
 	function forEachBlock(fn) {
 		for (var x = 0; x < width; x++) {
 			for (var y = 0; y < height; y++) {
@@ -373,7 +391,10 @@ function Maze(raphael) {
 		return blockThat(function(x, y) { return (data[y][x] == character)})
 	}
 	forEachBlock(function(x, y) { if (isWall(Point(x, y))) { 
-	  raphael.rect(x * blockSize + 1, y * blockSize + 1, blockSize - 3, blockSize - 3).attr({ stroke : "#808", "stroke-width" : 3, fill : "#404"})
+	  var corner = blockCorner(x, y), 
+	      size = sizeOf(Point(x, y))
+	  raphael.rect(corner.x, corner.y, size.x, size.y)
+	    .attr({ stroke : "#808", "stroke-width" : 3, fill : "#404"})
 	}})
   function accessible(pos, objectRadiusX, objectRadiusY, predicate) {
 	  if (!objectRadiusY) objectRadiusY = objectRadiusX
@@ -384,11 +405,11 @@ function Maze(raphael) {
 	}
 	return {
 		playerStartPos : function(player) {
-			return toPixels(findMazePos("" + player.id))
+			return blockCenter(findMazePos("" + player.id))
 		},      
 		playerScorePos : function(player) {
 		  var number = Number(player.id) + 4
-		  return toPixels(findMazePos("" + number))
+		  return blockCenter(findMazePos("" + number))
 		},
 		isAccessible : function(pos, objectRadiusX, objectRadiusY) {
 		  return accessible(pos, objectRadiusX, objectRadiusY, function(blockPos) { return !isWall(blockPos) })
@@ -399,7 +420,7 @@ function Maze(raphael) {
 		randomFreePos : function(filter) {
 		  while(true) {
 		    var blockPos = Point(randomInt(width), randomInt(height))
-		    var pixelPos = toPixels(blockPos)
+		    var pixelPos = blockCenter(blockPos)
 		    if (filter(pixelPos)) return pixelPos
 	    }
 	  }
