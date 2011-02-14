@@ -188,6 +188,7 @@ function PlayerFigure(player, maze, messageQueue, targets, r) {
 }
 
 function FigureImage(imgPrefix, animCount, animCycle) {
+  imgPrefix = imgPath + imgPrefix
   return {
     create : function(startPos, radius, r) {
       return r.image(imgPrefix + "-left-1.png", startPos.x - radius, startPos.y - radius, radius * 2, radius * 2)
@@ -254,7 +255,7 @@ function Figure(startPos, image, controlInput, maze, access, messageQueue, r) {
 
     position.Subscribe(function (pos) { figure.attr({x : pos.x - radius, y : pos.y - radius}) })
     hit.Subscribe(function() {     
-      figure.attr({src : "explosion.png"})
+      figure.attr({src : imgPath + "explosion.png"})
       setTimeout(function(){ figure.remove() }, 1000)
     })                            
 
@@ -402,6 +403,7 @@ function Maze(raphael, blockSize) {
                               
 var delay = 50
 var left = Point(-1, 0), right = Point(1, 0), up = Point(0, -1), down = Point(0, 1)
+var imgPath = "images/"
 
 function randomInt(limit) { return Math.floor(Math.random() * limit) }
 function identity(x) { return x }
