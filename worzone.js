@@ -152,6 +152,7 @@ function Bullet(startPos, shooter, velocity, maze, targets, messageQueue, r) {
   var targetFilter = always(true)
 	var radius = 3
 	var bullet = r.circle(startPos.x, startPos.y, radius).attr({fill: "#f00"})
+	bullet.radius = radius
 	var movements = gameTicker.Select(function(_) {return velocity})
 	var unlimitedPosition = movements
 		.Scan(startPos, function(pos, move) { return pos.add(move.times(20)) })
@@ -235,15 +236,22 @@ function Monster(image, points, fireInterval, maze, messageQueue, targets, r) {
   }).StartWith(left))
 }
 
+function Movement(figure, access) {
+  function moveIfPossible(pos, direction, speed) {
+    if (speed == undefined) speed = figure.speed
+    if (speed <= 0) return pos
+    var nextPos = pos.add(direction.times(speed))
+    if (!access(nextPos, figure.radius)) 
+      return moveIfPossible(pos, direction, speed -1)
+    return nextPos
+  }
+
+  return {
+    moveIfPossible: moveIfPossible
+  }
+}
+
 function Figure(startPos, image, controlInput, maze, access, messageQueue, r) {
-    function moveIfPossible(pos, direction, speed) {
-      if (speed == undefined) speed = figure.speed
-      if (speed <= 0) return pos
-      var nextPos = pos.add(direction.times(speed))
-      if (!access(nextPos, radius)) 
-        return moveIfPossible(pos, direction, speed -1)
-      return nextPos
-    }
     var radius = 16      
     var figure = image.create(startPos, radius, r)
     figure.radius = radius
@@ -252,7 +260,7 @@ function Figure(startPos, image, controlInput, maze, access, messageQueue, r) {
     var direction = controlInput.directionInput.TakeUntil(hit).DistinctUntilChanged()
     var latestDirection = direction.Where(identity).StartWith(left)
     var movements = direction.SampledBy(gameTicker).Where(identity).TakeUntil(hit)
-    var position = movements.Scan(startPos, moveIfPossible).StartWith(startPos).DistinctUntilChanged()
+    var position = movements.Scan(startPos, Movement(figure, access).moveIfPossible).StartWith(startPos).DistinctUntilChanged()
 
     position.Subscribe(function (pos) { figure.attr({x : pos.x - radius, y : pos.y - radius}) })
     hit.Subscribe(function() {     
