@@ -341,12 +341,12 @@ function MessageQueue() {
         if (observers.length == 1) {
           subscriptions.forEach(function(subscription) { subscription.start() })
         }
-		    return function() { 
-		      remove(observers, observer); 
-		      if (observers.length == 0) {
-		        subscriptions.forEach(function(subscription) { subscription.stop() })
-		      }
-		    }
+        return function() { 
+          remove(observers, observer); 
+          if (observers.length == 0) {
+            subscriptions.forEach(function(subscription) { subscription.stop() })
+          }
+        }
     })    
     messageQueue.ofType = function(messageType) { return messageQueue.Where(function(message) { return message.message == messageType})}
     messageQueue.push = function (message) {  	      
