@@ -87,7 +87,6 @@ function Player(id, keyMap, maze, targets, messageQueue, r) {
 	var player = {
 		id : id,
 		keyMap : keyMap,
-		join : function() { messageQueue.push({ message : "join", player : this}) },
 		toString : function() { return "Player " + id}
 	}             
 	Score(player, maze, messageQueue, r)
