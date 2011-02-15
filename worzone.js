@@ -58,11 +58,8 @@ function Audio() {
 }
 
 function Players(maze, messageQueue, targets, r) {
-  messageQueue.ofType("join").Subscribe(function(join) {
-	  PlayerFigure(join.player, maze, messageQueue, targets, r)
-  })
-  var player1 = Player(1, KeyMap([[87, up], [83, down], [65, left], [68, right]], [70]), maze, messageQueue, r)
-  var player2 = Player(2, KeyMap([[38, up], [40, down], [37, left], [39, right]], [189, 109, 18]), maze, messageQueue, r)
+  var player1 = Player(1, KeyMap([[87, up], [83, down], [65, left], [68, right]], [70]), maze, targets, messageQueue, r)
+  var player2 = Player(2, KeyMap([[38, up], [40, down], [37, left], [39, right]], [189, 109, 18]), maze, targets, messageQueue, r)
 }
 
 function Monsters(maze, messageQueue, targets, r) {
@@ -86,7 +83,7 @@ function KeyMap(directionKeyMap, fireKey) {
 	}
 }
 
-function Player(id, keyMap, maze, messageQueue, r) {
+function Player(id, keyMap, maze, targets, messageQueue, r) {
 	var player = {
 		id : id,
 		keyMap : keyMap,
@@ -102,9 +99,13 @@ function Player(id, keyMap, maze, messageQueue, r) {
 	var gameOver = lives
 	  .Where(function(lives) { return lives.lives == 0})
 	  .Select(function() { return { message : "gameover", player : player} } )
-	lives
+	var join = lives
 	  .TakeUntil(gameOver)
-	  .Subscribe(function(lives) {player.join()})   
+    .Select(always({ message : "join", player : player}))    
+  join.Subscribe(function(join) {
+  	PlayerFigure(join.player, maze, messageQueue, targets, r)
+  })	
+  messageQueue.plug(join)  
 	messageQueue.plug(lives)
 	messageQueue.plug(gameOver)
 	toConsole(gameOver, "GAME OVER " + player)
