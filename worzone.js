@@ -347,7 +347,7 @@ function MessageQueue() {
 		    }
     })    
     messageQueue.ofType = function(messageType) { return messageQueue.Where(function(message) { return message.message == messageType})}
-    messageQueue.push = function (message) {  	       
+    messageQueue.push = function (message) {  	      
         observers.map(identity).forEach(function(observer) {
             observer.OnNext(message)
         });
