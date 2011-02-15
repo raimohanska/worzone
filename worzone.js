@@ -61,7 +61,6 @@ function Players(maze, messageQueue, targets, r) {
   messageQueue.ofType("join").Subscribe(function(join) {
 	  PlayerFigure(join.player, maze, messageQueue, targets, r)
   })
-  messageQueue.ofType("hit").Where(function (hit) { return hit.target.player }).Subscribe(function(hit) {hit.target.player.join()})                               
   var player1 = Player(1, KeyMap([[87, up], [83, down], [65, left], [68, right]], [70]), maze, messageQueue, r)
   var player2 = Player(2, KeyMap([[38, up], [40, down], [37, left], [39, right]], [189, 109, 18]), maze, messageQueue, r)
 }
@@ -95,7 +94,12 @@ function Player(id, keyMap, maze, messageQueue, r) {
 		toString : function() { return "Player " + id}
 	}             
 	Score(player, maze, messageQueue, r)
-	player.join()	
+	var lives = messageQueue.ofType("hit")
+	  .Where(function (hit) { return hit.target.player == player })
+	  .Scan(3, function(lives, hit) { return lives - 1 })
+	  .StartWith(3)
+	lives.Subscribe(function(lives) {player.join()})   
+	toConsole(lives, player + " lives")                              
 	return player;
 }
 
