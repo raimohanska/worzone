@@ -156,6 +156,7 @@ function Bullet(startPos, shooter, velocity, maze, targets, messageQueue, r) {
 	var movements = gameTicker.Multiply(20).Select(function(_) {return velocity})
 	var unlimitedPosition = movements
 		.Scan(startPos, function(pos, move) { return pos.add(move) })
+		.StartWith(startPos)
 	var collision = unlimitedPosition.Where(function(pos) { return !maze.isAccessible(pos, radius, radius) }).Take(1)   
 	var hit = unlimitedPosition
 	  .Where(function(pos) { return targets.hit(pos, targetFilter) })
@@ -483,10 +484,19 @@ function identity(x) { return x }
 function first(xs) { return xs ? xs[0] : undefined}
 function latter (_, second) { return second }      
 function extractProperty(property) { return function(x) { return x.property } }
-Rx.Observable.prototype.CombineWithLatestOf = function(otherStream, combinator) {
-	var latest
-	otherStream.Subscribe(function(value) { latest = value })
-	return this.Select(function(mainValue) { return combinator(mainValue, latest) } )
+Rx.Observable.prototype.CombineWithLatestOf = function(otherStream, combinator) {    
+  var mainStream = this
+  return Rx.Observable.Create(function(subscriber) {        
+    var latest
+    var d1 = mainStream.Subscribe(function(mainValue) { 
+      subscriber.OnNext(combinator(mainValue, latest)) 
+    })
+    var d2 = otherStream.Subscribe(function(message) { latest = message})
+    return function() {
+      d1.Dispose()
+      d2.Dispose()
+    }
+  })
 }
 Rx.Observable.prototype.SampledBy = function(otherStream) {
   return otherStream.CombineWithLatestOf(this, latter)
