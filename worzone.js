@@ -161,7 +161,8 @@ function Bullet(startPos, shooter, velocity, maze, targets, messageQueue, r) {
 	var hit = unlimitedPosition
 	  .Where(function(pos) { return targets.hit(pos, targetFilter) })
 	  .Select(function(pos) { return { message : "hit", target : targets.hit(pos, targetFilter), shooter : shooter}})
-	  .Take(1) 
+	  .Take(1)                 
+	  .TakeUntil(collision)
 	var hitOrCollision = collision.Merge(hit)
 	var position = unlimitedPosition.SampledBy(gameTicker).TakeUntil(hitOrCollision)
 	
