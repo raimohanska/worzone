@@ -98,8 +98,16 @@ function Player(id, keyMap, maze, messageQueue, r) {
 	  .Where(function (hit) { return hit.target.player == player })
 	  .Scan(3, function(lives, hit) { return lives - 1 })
 	  .StartWith(3)
-	lives.Subscribe(function(lives) {player.join()})   
-	toConsole(lives, player + " lives")                              
+	  .Select( function(lives) { return { message : "lives", player : player, lives : lives}})
+	var gameOver = lives
+	  .Where(function(lives) { return lives.lives == 0})
+	  .Select(function() { return { message : "gameover", player : player} } )
+	lives
+	  .TakeUntil(gameOver)
+	  .Subscribe(function(lives) {player.join()})   
+	messageQueue.plug(lives)
+	messageQueue.plug(gameOver)
+	toConsole(gameOver, "GAME OVER " + player)
 	return player;
 }
 
