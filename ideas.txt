@@ -1,3 +1,7 @@
+Fixes
+
+- Runs slow in Firefox
+
 Features
 
 - 3 lives

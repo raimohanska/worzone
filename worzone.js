@@ -62,8 +62,8 @@ function Players(maze, messageQueue, targets, r) {
 	  PlayerFigure(join.player, maze, messageQueue, targets, r)
   })
   messageQueue.ofType("hit").Where(function (hit) { return hit.target.player }).Subscribe(function(hit) {hit.target.player.join()})                               
-  var player1 = Player(1, KeyMap([[87, up], [83, down], [65, left], [68, right]], 70), maze, messageQueue, r)
-  var player2 = Player(2, KeyMap([[38, up], [40, down], [37, left], [39, right]], 189), maze, messageQueue, r)
+  var player1 = Player(1, KeyMap([[87, up], [83, down], [65, left], [68, right]], [70]), maze, messageQueue, r)
+  var player2 = Player(2, KeyMap([[38, up], [40, down], [37, left], [39, right]], [189, 109, 18]), maze, messageQueue, r)
 }
 
 function Monsters(maze, messageQueue, targets, r) {
@@ -292,10 +292,13 @@ function Figure(startPos, image, controlInput, maze, access, messageQueue, r) {
 function Keyboard() {
 	var allKeyUps = $(document).toObservable("keyup")
 	var allKeyDowns = $(document).toObservable("keydown")
-	//allKeyDowns.Subscribe(function(event) {console.log(event.keyCode)})
+	allKeyDowns.Subscribe(function(event) {console.log(event.keyCode)})
 	function keyCodeIs(keyCode) { return function(event) { return event.keyCode == keyCode} }
+	function keyCodeIsOneOf(keyCodes) { return function(event) { return keyCodes.indexOf(event.keyCode) >= 0} }
 	function keyUps(keyCode) { return allKeyUps.Where(keyCodeIs(keyCode)) }
-	function keyDowns(keyCode) { return allKeyDowns.Where(keyCodeIs(keyCode)) }
+	function keyDowns(keyCodes) { 
+	  return allKeyDowns.Where(keyCodeIsOneOf(toArray(keyCodes))) 
+	}
 	function keyState(keyCode, value) { 		
 		return Rx.Observable.FromArray([[]]).Merge(keyDowns(keyCode).Select(always([value]))
 			.Merge(keyUps(keyCode).Select(always([]))).DistinctUntilChanged())
