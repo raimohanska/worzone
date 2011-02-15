@@ -19,18 +19,15 @@ $(function() {
 })
 
 function GameSounds(messageQueue, audio) {
-  function joinSound(id) {
-    messageQueue.ofType("move")
-      .Where(function (move) { return move.object.player && move.object.player.id == id }).Take(1)
-      .Subscribe(audio.playSound("join" + id))    
-  } 
   function sequence(delay, count) {
     return ticker(delay).Scan(1, function(counter, _) { return counter % count + 1} )    
   }
   sequence(500, 3)
     .Subscribe(function(counter) { audio.playSound("move" + counter)() })
-  joinSound(1)
-  joinSound(2)
+    messageQueue.ofType("start")
+      .Where(function (move) { return move.object.player })
+      .Select(function(move) { return move.object.player.id })
+      .Subscribe(function(id) { audio.playSound("join" + id)() })    
   messageQueue.ofType("fire").Subscribe(audio.playSound("fire"))
   messageQueue.ofType("hit").Subscribe(audio.playSound("explosion"))  
 }         
@@ -280,7 +277,8 @@ function Figure(startPos, image, controlInput, maze, access, messageQueue, r) {
   	  return {message : "fire", pos : status.pos.add(status.dir.withLength(radius + 5)), dir : status.dir, shooter : figure} 
     }).TakeUntil(hit)
 
-    messageQueue.plug(status)
+    var start = movements.Take(1).Select(function() { return { message : "start", object : figure} })
+    messageQueue.plug(start)
     messageQueue.plug(fire)        
     var currentPos = LatestValueHolder(position)
     figure.inRange = function(pos, range) { return currentPos.value().subtract(pos).getLength() < range + radius }
