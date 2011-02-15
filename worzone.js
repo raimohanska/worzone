@@ -89,7 +89,6 @@ function Player(id, keyMap, maze, targets, messageQueue, r) {
 		keyMap : keyMap,
 		toString : function() { return "Player " + id}
 	}             
-	Score(player, maze, messageQueue, r)
 	var lives = messageQueue.ofType("hit")
 	  .Where(function (hit) { return hit.target.player == player })
 	  .Scan(3, function(lives, hit) { return lives - 1 })
@@ -104,9 +103,23 @@ function Player(id, keyMap, maze, targets, messageQueue, r) {
   messageQueue.plug(join)  
 	messageQueue.plug(lives)
 	messageQueue.plug(gameOver)
-  join.Subscribe(function() { PlayerFigure(player, maze, messageQueue, targets, r) })	
+  join.Subscribe(function() { PlayerFigure(player, maze, messageQueue, targets, r) })
+	Score(player, maze, messageQueue, r)
+	LivesDisplay(player, lives, maze, r)  
 	toConsole(gameOver, "GAME OVER " + player)
 	return player;
+}      
+
+function LivesDisplay(player, lives, maze, r) {
+  var pos = maze.playerScorePos(player)
+  lives.Take(1).Subscribe(function(status) {
+    _.range(0, status.lives).forEach(function(index) {
+      var image = PlayerImage(player).create(pos.add(Point(index * 20, 10)), 8, r)
+      lives
+        .Where(function(lives) { return lives.lives <= index + 1})
+        .Subscribe(function(lives) { image.remove() })
+    })
+  })
 }
 
 function Score(player, maze, messageQueue, r) {                                        
@@ -119,7 +132,7 @@ function Score(player, maze, messageQueue, r) {
   messageQueue.plug(score.Select(function(points) { return { message : "score", player : player, score : points} } ))
 
   var pos = maze.playerScorePos(player)
-  var scoreDisplay = r.text(pos.x, pos.y, "0").attr({ fill : "#ff0"})
+  var scoreDisplay = r.text(pos.x, pos.y - 10, "0").attr({ fill : "#ff0"})
 
   score.Subscribe(function(points) { scoreDisplay.attr({ text : points }) })               
 }             
@@ -176,7 +189,11 @@ function Bullet(startPos, shooter, velocity, maze, targets, messageQueue, r) {
   position.Subscribe(function (pos) { bullet.animate({cx : pos.x, cy : pos.y}, delay) })
   hitOrCollision.Subscribe(function(pos) { bullet.remove() }) 
 	messageQueue.plug(hit)
-}      
+}                  
+
+function PlayerImage(player) {
+  return FigureImage("man", 2, 2)
+}
 
 function PlayerFigure(player, maze, messageQueue, targets, r) {
   var directionInput = Keyboard().multiKeyState(player.keyMap.directionKeyMap).Where(atMostOne).Select(first)
@@ -184,7 +201,7 @@ function PlayerFigure(player, maze, messageQueue, targets, r) {
   var controlInput = ControlInput(directionInput, fireInput)
   var startPos = maze.playerStartPos(player)
   function access(pos) { return maze.isAccessible(pos, 16) }
-  var man = Figure(startPos, FigureImage("man", 2, 2), controlInput, maze, access, messageQueue, r)
+  var man = Figure(startPos, PlayerImage(player), controlInput, maze, access, messageQueue, r)
   man.player = player
   man.points = 1000
   var hitByMonster = man.streams.position
@@ -389,7 +406,7 @@ function Maze(raphael) {
 	    "* *******  ****** *",
 	    "*                 *",
 	    "* *************** *",
-	    "*1*5XXXXXXXXXXX6*2*",
+	    "*1*5XXXXXXXXXX60*2*",
 	    "***XXXXXXXXXXXXX***" ]
 	var blockSize = 50
 	var wall = 4           
