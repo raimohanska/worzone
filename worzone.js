@@ -101,12 +101,10 @@ function Player(id, keyMap, maze, targets, messageQueue, r) {
 	var join = lives
 	  .TakeUntil(gameOver)
     .Select(always({ message : "join", player : player}))    
-  join.Subscribe(function(join) {
-  	PlayerFigure(join.player, maze, messageQueue, targets, r)
-  })	
   messageQueue.plug(join)  
 	messageQueue.plug(lives)
 	messageQueue.plug(gameOver)
+  join.Subscribe(function() { PlayerFigure(player, maze, messageQueue, targets, r) })	
 	toConsole(gameOver, "GAME OVER " + player)
 	return player;
 }
