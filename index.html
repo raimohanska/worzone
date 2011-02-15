@@ -7,20 +7,25 @@
 	<script type="text/javascript" src="lib/raphael.js"></script>
 	<script type="text/javascript" src="vector.js"></script>
 	<script type="text/javascript" src="worzone.js"></script>
-	<style type="text/css"> 
-		#instructions, #controls { position:absolute; left:520px;}
-		#controls {top:200px;}
+	<style type="text/css">
+	    body { font-family : Courier;  background: #000; color: #0f0; }     
+		#sidebar { position:absolute; left:520px; top:20px; padding : 10px;}
+		#links { margin-top : 15px;}
 	</style>                
 </head>
-<body>   
-	<div id="instructions">
-		<p>Left: a,s,d,w,f</p>
-		<p>Right: arrow keys, -</p>
-	</div>
-	<div id="controls">
-		<label for="sound">sound</label>
-		<input type="checkbox" value="sound" id="sound"/>
-	</div>
-	
+<body>                   
+	<div id="sidebar">
+		<div id="instructions">
+			<p>Left: a,s,d,w,f</p>
+			<p>Right: arrow keys, -</p>
+		</div>
+		<div id="controls">
+			<label for="sound">sound</label>
+			<input type="checkbox" value="sound" id="sound"/>
+		</div>                         
+		<div id="links">
+			<a href="http://github.com/raimohanska/worzone">FORK ME @ GITHUB</a>
+		</div>
+	</div>	
 </body>
 </html>
