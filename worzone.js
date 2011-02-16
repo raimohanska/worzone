@@ -87,7 +87,7 @@ function Monsters(maze, messageQueue, targets, r) {
     var monsterHit = messageQueue.ofType("hit")
       .Where(function (hit) { return hit.target.monster })
     var levelFinished = monsterHit
-      .Skip(3)
+      .Skip(15)
       .Select(always({ message : "level-finished"}))
       .Take(1)
     monsterHit
