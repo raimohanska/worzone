@@ -24,10 +24,10 @@ function GameSounds(messageQueue, audio) {
   }
   sequence(500, 3)
     .Subscribe(function(counter) { audio.playSound("move" + counter)() })
-    messageQueue.ofType("start")
-      .Where(function (start) { return start.object.player })
-      .Select(function(start) { return start.object.player.id })
-      .Subscribe(function(id) { audio.playSound("join" + id)() })    
+  messageQueue.ofType("start")
+    .Where(function (start) { return start.object.player })
+    .Select(function(start) { return start.object.player.id })
+    .Subscribe(function(id) { audio.playSound("join" + id)() })    
   messageQueue.ofType("fire").Subscribe(audio.playSound("fire"))
   messageQueue.ofType("hit").Subscribe(audio.playSound("explosion"))  
 }         
