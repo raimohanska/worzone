@@ -163,8 +163,8 @@ function ControlInput(directionInput, fireInput) {
 
 function Targets(messageQueue) {     
 	var targets = []
-	messageQueue.ofType("hit").Subscribe(function(hit) {
-		targets = _.select(targets, function(target) { return target != hit.target})
+	messageQueue.ofType("remove").Subscribe(function(remove) {
+		targets = _.select(targets, function(target) { return target != remove.object})
 	})                                                                                                   
 	messageQueue.ofType("create").Subscribe(function(create) {
 		targets.push(create.target)
@@ -304,11 +304,11 @@ function Figure(startPos, image, controlInput, maze, access, messageQueue, r) {
     figure.speed = 4
     var hit = messageQueue.ofType("hit").Where(function(hit) { return hit.target == figure }).Take(1)
     var levelFinished = messageQueue.ofType("level-finished").Take(1)
-    var hitOrLevelFinished = hit.Merge(levelFinished).Take(1)
+    var removed = hit.Merge(levelFinished).Take(1).Select(always({ message : "remove", object : figure}))
     
-    var direction = controlInput.directionInput.TakeUntil(hitOrLevelFinished).DistinctUntilChanged()
+    var direction = controlInput.directionInput.TakeUntil(removed).DistinctUntilChanged()
     var latestDirection = direction.Where(identity).StartWith(left)
-    var movements = direction.SampledBy(gameTicker).Where(identity).TakeUntil(hitOrLevelFinished)
+    var movements = direction.SampledBy(gameTicker).Where(identity).TakeUntil(removed)
     var position = movements.Scan(startPos, Movement(figure, access).moveIfPossible).StartWith(startPos).DistinctUntilChanged()
 
     position.Subscribe(function (pos) { figure.attr({x : pos.x - radius, y : pos.y - radius}) })
@@ -326,11 +326,12 @@ function Figure(startPos, image, controlInput, maze, access, messageQueue, r) {
 
     var fire = status.SampledBy(controlInput.fireInput).Select(function(status) {             
   	  return {message : "fire", pos : status.pos.add(status.dir.withLength(radius + 5)), dir : status.dir, shooter : figure} 
-    }).TakeUntil(hitOrLevelFinished)
+    }).TakeUntil(removed)
 
     var start = movements.Take(1).Select(function() { return { message : "start", object : figure} })
     messageQueue.plug(start)
-    messageQueue.plug(fire)        
+    messageQueue.plug(fire)  
+    messageQueue.plug(removed)      
     var currentPos = LatestValueHolder(position)
     figure.inRange = function(pos, range) { return currentPos.value().subtract(pos).getLength() < range + radius }
     messageQueue.push({ message : "create", target : figure })
