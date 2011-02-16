@@ -77,6 +77,10 @@ function Audio() {
 function Players(maze, messageQueue, targets, r) {
   var player1 = Player(1, KeyMap([[87, up], [83, down], [65, left], [68, right]], [70]), maze, targets, messageQueue, r)
   var player2 = Player(2, KeyMap([[38, up], [40, down], [37, left], [39, right]], [189, 109, 18]), maze, targets, messageQueue, r)
+  messageQueue.ofType("gameover").Skip(1).Subscribe(function(){
+    var pos = maze.centerMessagePos()
+    r.text(pos.x, pos.y, "GAME OVER").attr({ fill : "#f00", "font-size" : 50, "font-family" : "courier"})
+  })
 }
 
 function Monsters(maze, messageQueue, targets, r) {
@@ -436,7 +440,7 @@ function Maze(raphael) {
 	    "* *   *******   * *",
 	    "* *   *     *   * *",
 	    "* *             * *",
-	    "*                 *",
+	    "*        C        *",
 	    "* *   *******   * *",
 	    "* *             * *",
 	    "* *             * *",
@@ -455,8 +459,11 @@ function Maze(raphael) {
 	  if (blockPos.y >= height || blockPos.x >= width || blockPos.x < 0 || blockPos.y < 0) return "X"
 		return data[blockPos.y][blockPos.x]
 	}
-	function isWall(blockPos) { return charAt(blockPos) == "*" }
-	function isFree(blockPos) { return charAt(blockPos) == " " }
+	function isChar(blockPos, chars) {
+	  return chars.indexOf(charAt(blockPos)) >= 0
+  }
+	function isWall(blockPos) { return isChar(blockPos, "*") }
+	function isFree(blockPos) { return isChar(blockPos, "C ") }
 	function blockCorner(blockPos) {         
 	  function blockToPixel(block) {
 	     var fullBlocks = Math.floor(block / 2)
@@ -521,6 +528,9 @@ function Maze(raphael) {
 	return {
 	  levelNumberPos : function() {
 	    return blockCenter(findMazePos("L"))
+	  },
+	  centerMessagePos : function() {
+	    return blockCenter(findMazePos("C"))
 	  },
 		playerStartPos : function(player) {
 			return blockCenter(findMazePos("" + player.id))
