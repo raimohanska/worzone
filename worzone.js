@@ -115,18 +115,21 @@ function Player(id, keyMap, maze, targets, messageQueue, r) {
 		id : id,
 		keyMap : keyMap,
 		toString : function() { return "Player " + id}
-	}             
+	} 
+	var startLives = 3            
 	var lives = messageQueue.ofType("hit")
 	  .Where(function (hit) { return hit.target.player == player })
-	  .Scan(3, function(lives, hit) { return lives - 1 })
+	  .Scan(startLives, function(lives, hit) { return lives - 1 })
+	  .StartWith(startLives)
 	  .Select( function(lives) { return { message : "lives", player : player, lives : lives}})
 	var gameOver = lives
 	  .Where(function(lives) { return lives.lives == 0})
 	  .Select(function() { return { message : "gameover", player : player} } )
   var joinMessage = { message : "join", player : player}
 	var join = lives
+	  .Skip(1)
+    .Merge(messageQueue.ofType("level-started"))
 	  .TakeUntil(gameOver)
-	  .Merge(messageQueue.ofType("level-started"))
     .Select(always(joinMessage))    
   messageQueue.plug(join)  
 	messageQueue.plug(lives)
@@ -321,8 +324,9 @@ function Figure(startPos, image, controlInput, maze, access, messageQueue, r) {
     var position = movements.Scan(startPos, Movement(figure, access).moveIfPossible).StartWith(startPos).DistinctUntilChanged()
 
     position.Subscribe(function (pos) { figure.attr({x : pos.x - radius, y : pos.y - radius}) })
-    hit.Subscribe(function() {     
-      figure.attr({src : imgPath + "explosion.png"})
+    hit.Subscribe(function() {    
+      // TODO: fix timing issue : shouldn't have to delay before gif change
+      setTimeout(function(){ figure.attr({src : imgPath + "explosion.png"}) }, 100)      
       setTimeout(function(){ figure.remove() }, 1000)
     })
     levelFinished.Subscribe(function() { figure.remove() })
