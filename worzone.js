@@ -270,6 +270,7 @@ function FigureImage(imgPrefix, animCount, animCycle) {
         return { image :  imgPrefix + "-left-" + index + ".png", dir : status.dir }
       })
       animation.Subscribe(function(anim) {
+        if(figure.removed) return;
         figure.attr({src : anim.image})
         if(anim.dir == left) {
           // when facing left, use the pic as is
