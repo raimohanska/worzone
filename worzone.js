@@ -68,15 +68,19 @@ function Monsters(maze, messageQueue, targets, r) {
   _.range(0, 5).forEach(burwor)
   var monsterHit = messageQueue.ofType("hit")
     .Where(function (hit) { return hit.target.monster })
-  var monstersDefeated = monsterHit.Skip(10)
+  var levelFinished = monsterHit
+    .Skip(10)
+    .Select(always({ message : "level-finished"}))
+    .Take(1)
   monsterHit
-    .TakeUntil(monstersDefeated)
+    .TakeUntil(levelFinished)
     .Delay(2000)
     .Subscribe(garwor)                                   
   ticker(5000)
-    .TakeUntil(monstersDefeated)
+    .TakeUntil(levelFinished)
     .Where(function() { return (targets.count(Monsters.monsterFilter) < 10) })
-    .Subscribe(burwor)                               
+    .Subscribe(burwor)
+  messageQueue.plug(levelFinished)                        
 }       
 Monsters.monsterFilter = function(target) { return target.monster }  
 
@@ -287,16 +291,20 @@ function Figure(startPos, image, controlInput, maze, access, messageQueue, r) {
     figure.radius = radius
     figure.speed = 4
     var hit = messageQueue.ofType("hit").Where(function(hit) { return hit.target == figure }).Take(1)
-    var direction = controlInput.directionInput.TakeUntil(hit).DistinctUntilChanged()
+    var levelFinished = messageQueue.ofType("level-finished").Take(1)
+    var hitOrLevelFinished = hit.Merge(levelFinished).Take(1)
+    
+    var direction = controlInput.directionInput.TakeUntil(hitOrLevelFinished).DistinctUntilChanged()
     var latestDirection = direction.Where(identity).StartWith(left)
-    var movements = direction.SampledBy(gameTicker).Where(identity).TakeUntil(hit)
+    var movements = direction.SampledBy(gameTicker).Where(identity).TakeUntil(hitOrLevelFinished)
     var position = movements.Scan(startPos, Movement(figure, access).moveIfPossible).StartWith(startPos).DistinctUntilChanged()
 
     position.Subscribe(function (pos) { figure.attr({x : pos.x - radius, y : pos.y - radius}) })
     hit.Subscribe(function() {     
       figure.attr({src : imgPath + "explosion.png"})
       setTimeout(function(){ figure.remove() }, 1000)
-    })                            
+    })
+    levelFinished.Subscribe(function() { figure.remove() })
 
     var status = position.CombineLatest(latestDirection, function(pos, dir) {
   	  return { message : "move", object : figure, pos : pos, dir : dir }
@@ -306,7 +314,7 @@ function Figure(startPos, image, controlInput, maze, access, messageQueue, r) {
 
     var fire = status.SampledBy(controlInput.fireInput).Select(function(status) {             
   	  return {message : "fire", pos : status.pos.add(status.dir.withLength(radius + 5)), dir : status.dir, shooter : figure} 
-    }).TakeUntil(hit)
+    }).TakeUntil(hitOrLevelFinished)
 
     var start = movements.Take(1).Select(function() { return { message : "start", object : figure} })
     messageQueue.plug(start)
