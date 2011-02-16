@@ -1,12 +1,14 @@
-Fixes
+Bugs
 
+- Player figure duplicates (cannot reproduce)
 - Runs slow in Firefox
 
 Features
 
-- 3 lives
-- multiple levels
-- better monster logic
+- more and eviler monsters for each level
+- better monster logic (garwor to follow players?)
+- monsters should not kill each other
+- player should be ejected from the starting point in 10 seconds and should not be able to go back
 - thorwors and whatnot
 
 Improvements
