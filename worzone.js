@@ -10,12 +10,19 @@ $(function() {
 
   messageQueue.ofType("fire").Subscribe(function(fire) { 
 	  Bullet(fire.pos, fire.shooter, fire.dir, maze, targets, messageQueue, r) 
-  })                 
+  })         
   
   var audio = Audio()              
   GameSounds(messageQueue, audio)
   
   $('#sound').click(function() { audio.toggle() })
+  
+  var startLevel = 
+    messageQueue.ofType("level-finished")
+    .StartWith(_)
+    .Select(always({ message : "level-started"}))
+  
+  messageQueue.plug(startLevel)
 })
 
 function GameSounds(messageQueue, audio) {
@@ -64,23 +71,25 @@ function Players(maze, messageQueue, targets, r) {
 
 function Monsters(maze, messageQueue, targets, r) {
   function burwor() { Burwor(maze, messageQueue, targets, r) }
-  function garwor() { Garwor(maze, messageQueue, targets, r) } 
-  _.range(0, 5).forEach(burwor)
-  var monsterHit = messageQueue.ofType("hit")
-    .Where(function (hit) { return hit.target.monster })
-  var levelFinished = monsterHit
-    .Skip(10)
-    .Select(always({ message : "level-finished"}))
-    .Take(1)
-  monsterHit
-    .TakeUntil(levelFinished)
-    .Delay(2000)
-    .Subscribe(garwor)                                   
-  ticker(5000)
-    .TakeUntil(levelFinished)
-    .Where(function() { return (targets.count(Monsters.monsterFilter) < 10) })
-    .Subscribe(burwor)
-  messageQueue.plug(levelFinished)                        
+  function garwor() { Garwor(maze, messageQueue, targets, r) }
+  messageQueue.ofType("level-started").Subscribe(function(){
+    _.range(0, 5).forEach(burwor)
+    var monsterHit = messageQueue.ofType("hit")
+      .Where(function (hit) { return hit.target.monster })
+    var levelFinished = monsterHit
+      .Skip(3)
+      .Select(always({ message : "level-finished"}))
+      .Take(1)
+    monsterHit
+      .TakeUntil(levelFinished)
+      .Delay(2000)
+      .Subscribe(garwor)                                   
+    ticker(5000)
+      .TakeUntil(levelFinished)
+      .Where(function() { return (targets.count(Monsters.monsterFilter) < 10) })
+      .Subscribe(burwor)
+    messageQueue.plug(levelFinished)                            
+  })  
 }       
 Monsters.monsterFilter = function(target) { return target.monster }  
 
@@ -100,21 +109,24 @@ function Player(id, keyMap, maze, targets, messageQueue, r) {
 	var lives = messageQueue.ofType("hit")
 	  .Where(function (hit) { return hit.target.player == player })
 	  .Scan(3, function(lives, hit) { return lives - 1 })
-	  .StartWith(3)
 	  .Select( function(lives) { return { message : "lives", player : player, lives : lives}})
 	var gameOver = lives
 	  .Where(function(lives) { return lives.lives == 0})
 	  .Select(function() { return { message : "gameover", player : player} } )
+  var joinMessage = { message : "join", player : player}
 	var join = lives
 	  .TakeUntil(gameOver)
-    .Select(always({ message : "join", player : player}))    
+	  .Merge(messageQueue.ofType("level-started"))
+    .Select(always(joinMessage))    
   messageQueue.plug(join)  
 	messageQueue.plug(lives)
 	messageQueue.plug(gameOver)
-  join.Subscribe(function() { PlayerFigure(player, maze, messageQueue, targets, r) })
+  
 	Score(player, maze, messageQueue, r)
 	LivesDisplay(player, lives, maze, r)  
 	toConsole(gameOver, "GAME OVER " + player)
+	
+  join.Subscribe(function() { PlayerFigure(player, maze, messageQueue, targets, r) })	
 	return player;
 }      
 
