@@ -17,13 +17,23 @@ $(function() {
   
   $('#sound').click(function() { audio.toggle() })
   
-  var startLevel = 
+  Levels(messageQueue, maze, r)  
+})
+
+function Levels(messageQueue, maze, r) {
+  var levels = 
     messageQueue.ofType("level-finished")
     .StartWith(_)
-    .Select(always({ message : "level-started"}))
+    .Scan(0, function(prev, _) { return prev + 1 })
+    .Select(function(level) { return { message : "level-started", level : level} })
+    
+  messageQueue.plug(levels)
   
-  messageQueue.plug(startLevel)
-})
+  var text = r.text(maze.levelNumberPos().x, maze.levelNumberPos().y, "").attr({ fill : "#FF0"})
+  levels.Subscribe(function(level) {
+    text.attr({ text : "Level " + level.level})
+  })
+}
 
 function GameSounds(messageQueue, audio) {
   function sequence(delay, count) {
@@ -431,7 +441,7 @@ function Maze(raphael) {
 	    "* *******  ****** *",
 	    "*                 *",
 	    "* *************** *",
-	    "*1*5XXXXXXXXXX60*2*",
+	    "*1*5XXXXXLXXXX60*2*",
 	    "***XXXXXXXXXXXXX***" ]
 	var blockSize = 50
 	var wall = 4           
@@ -506,6 +516,9 @@ function Maze(raphael) {
 		return true  
 	}
 	return {
+	  levelNumberPos : function() {
+	    return blockCenter(findMazePos("L"))
+	  },
 		playerStartPos : function(player) {
 			return blockCenter(findMazePos("" + player.id))
 		},      
