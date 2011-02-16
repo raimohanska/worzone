@@ -158,7 +158,6 @@ function Score(player, maze, messageQueue, r) {
     .Select(function(hit) { return hit.target.points })
     .Scan(0, function(current, delta) { return current + delta })
     .StartWith(0)
-  score.Subscribe(function(points) { console.log(player + " has " + points + " points") })
   messageQueue.plug(score.Select(function(points) { return { message : "score", player : player, score : points} } ))
 
   var pos = maze.playerScorePos(player)
