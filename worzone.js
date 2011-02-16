@@ -66,11 +66,15 @@ function Monsters(maze, messageQueue, targets, r) {
   function burwor() { Burwor(maze, messageQueue, targets, r) }
   function garwor() { Garwor(maze, messageQueue, targets, r) } 
   _.range(0, 5).forEach(burwor)
-  messageQueue.ofType("hit")
+  var monsterHit = messageQueue.ofType("hit")
     .Where(function (hit) { return hit.target.monster })
+  var monstersDefeated = monsterHit.Skip(10)
+  monsterHit
+    .TakeUntil(monstersDefeated)
     .Delay(2000)
-    .Subscribe(garwor)                               
+    .Subscribe(garwor)                                   
   ticker(5000)
+    .TakeUntil(monstersDefeated)
     .Where(function() { return (targets.count(Monsters.monsterFilter) < 10) })
     .Subscribe(burwor)                               
 }       
