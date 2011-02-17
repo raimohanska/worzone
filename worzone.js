@@ -1,7 +1,6 @@
 $(function() {
   var bounds = Rectangle(0, 0, 500, 450)
   var r = Raphael(20, 20, bounds.width, bounds.height);
-  var maze = Maze(r)
   var messageQueue = MessageQueue()  
   var targets = Targets(messageQueue)
 
@@ -13,10 +12,12 @@ $(function() {
   
   $('#sound').click(function() { audio.toggle() })
   
-  Levels(messageQueue, maze, r)  
+  Levels(messageQueue, r)  
 })
 
-function Levels(messageQueue, maze, r) {
+function Levels(messageQueue, r) {
+  var maze = Maze(r)
+  
   var levels = 
     messageQueue.ofType("level-finished")
     .StartWith(_)
