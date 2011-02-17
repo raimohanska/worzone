@@ -18,13 +18,23 @@ $(function() {
 function Levels(messageQueue, targets, r) {
   var gameOver = messageQueue.ofType("gameover").Skip(1)
   var levelFinished = messageQueue.ofType("level-finished")
-  var levels = levelFinished
+  var levelStarting = levelFinished
     .StartWith(_)
     .Scan(0, function(prev, _) { return prev + 1 })
+    .Select(function(level) { return { message : "level-starting", level : level} })
+  var levels = levelStarting
+    .Delay(3000)
     .Select(function(level) { 
       var levelEnd = levelFinished.Merge(gameOver)      
-      return { message : "level-started", level : level, maze : Maze(levelEnd, r), levelEnd : levelEnd } 
+      return { message : "level-started", level : level.level, maze : Maze(levelEnd, r), levelEnd : levelEnd } 
     })
+  levelStarting.Subscribe(function() {
+    var text = r.text(240, 200, "GET READY").attr({ fill : "#f00", "font-size" : 50, "font-family" : "courier"})
+    levels.Take(1).Subscribe(function() {
+      text.remove()
+    })
+  })    
+    
   levels.Subscribe(function(level) {
     var pos = level.maze.levelNumberPos()
     var text = r.text(pos.x, pos.y, "Level " + level.level).attr({ fill : "#FF0"})
@@ -42,6 +52,7 @@ function Levels(messageQueue, targets, r) {
   })         
 
   messageQueue.plug(levels)
+  messageQueue.plug(levelStarting)
 }
 
 function GameSounds(messageQueue, audio) {
@@ -49,6 +60,9 @@ function GameSounds(messageQueue, audio) {
     return ticker(delay).Scan(1, function(counter, _) { return counter % count + 1} )    
   }
   sequence(500, 3)
+    .SkipUntil(messageQueue.ofType("level-started"))
+    .TakeUntil(messageQueue.ofType("level-finished"))
+    .Repeat()
     .Subscribe(function(counter) { audio.playSound("move" + counter)() })
   messageQueue.ofType("start")
     .Where(function (start) { return start.object.player })
@@ -56,6 +70,7 @@ function GameSounds(messageQueue, audio) {
     .Subscribe(function(id) { audio.playSound("join" + id)() })    
   messageQueue.ofType("fire").Subscribe(audio.playSound("fire"))
   messageQueue.ofType("hit").Subscribe(audio.playSound("explosion"))  
+  messageQueue.ofType("level-starting").Subscribe(audio.playSound("intro1"))
 }         
 
 function Audio() {   
