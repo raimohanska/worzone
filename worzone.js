@@ -16,13 +16,13 @@ $(function() {
 })
 
 function Levels(messageQueue, targets, r) {
-  var maze = Maze(r)
+  var firstMaze = Maze(r)
   
   var levels = 
     messageQueue.ofType("level-finished")
     .StartWith(_)
     .Scan(0, function(prev, _) { return prev + 1 })
-    .Select(function(level) { return { message : "level-started", level : level, maze : maze} })
+    .Select(function(level) { return { message : "level-started", level : level, maze : firstMaze} })
 
   LevelScope(messageQueue).inScope(function(levelStart, levelEnd) {
     levelStart.Subscribe(function(level) {
@@ -31,14 +31,16 @@ function Levels(messageQueue, targets, r) {
       levelEnd.Subscribe(function(){ text.remove() })
     })    
   })
+  
+  var currentMaze = messageQueue.ofType("level-started").Select(function(level) { return level.maze })
 
-  messageQueue.ofType("gameover").Skip(1).Subscribe(function(){
+  messageQueue.ofType("gameover").Skip(1).CombineWithLatestOf(currentMaze, latter).Subscribe(function(maze){
     var pos = maze.centerMessagePos()
     r.text(pos.x, pos.y, "GAME OVER").attr({ fill : "#f00", "font-size" : 50, "font-family" : "courier"})
   })      
   
   messageQueue.ofType("fire").Subscribe(function(fire) { 
-	  Bullet(fire.pos, fire.shooter, fire.dir, maze, targets, messageQueue, r) 
+	  Bullet(fire.pos, fire.shooter, fire.dir, fire.maze, targets, messageQueue, r) 
   })         
 
   messageQueue.plug(levels)
@@ -386,7 +388,7 @@ function Figure(startPos, image, controlInput, maze, access, messageQueue, r) {
     image.animate(figure, status)    
 
     var fire = status.SampledBy(controlInput.fireInput).Select(function(status) {             
-  	  return {message : "fire", pos : status.pos.add(status.dir.withLength(radius + 5)), dir : status.dir, shooter : figure} 
+  	  return {message : "fire", pos : status.pos.add(status.dir.withLength(radius + 5)), dir : status.dir, shooter : figure, maze : maze} 
     }).TakeUntil(removed)
 
     var start = movements.Take(1).Select(function() { return { message : "start", object : figure} })
@@ -631,6 +633,12 @@ Rx.Observable.prototype.Multiply = function(times) {
   var source = this
   _.range(1, times).forEach(function() { result.plug(source) })
   return result
+}
+Rx.Observable.prototype.DecorateWithLatestOf = function(stream, name) {
+  return this.CombineWithLatestOf(stream, function(main, additional) {
+    main[name] = additional
+    return main
+  })
 }
 Rx.Observable.CombineAll = function(streams, combinator) {
 	var stream = streams[0]
