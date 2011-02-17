@@ -6,7 +6,7 @@ $(function() {
   var targets = Targets(messageQueue)
 
   Monsters(messageQueue, targets, r)
-  Players(maze, messageQueue, targets, r)
+  Players(messageQueue, targets, r)
 
   messageQueue.ofType("fire").Subscribe(function(fire) { 
 	  Bullet(fire.pos, fire.shooter, fire.dir, maze, targets, messageQueue, r) 
@@ -26,7 +26,6 @@ function Levels(messageQueue, maze, r) {
     .StartWith(_)
     .Scan(0, function(prev, _) { return prev + 1 })
     .Select(function(level) { return { message : "level-started", level : level, maze : maze} })
-    .Take(1)
 
     LevelScope(messageQueue).inScope(function(levelStart, levelEnd) {
       levelStart.Subscribe(function(level) {
@@ -35,7 +34,12 @@ function Levels(messageQueue, maze, r) {
         levelEnd.Subscribe(function(){ text.remove() })
       })    
     })
-    
+
+    messageQueue.ofType("gameover").Skip(1).Subscribe(function(){
+      var pos = maze.centerMessagePos()
+      r.text(pos.x, pos.y, "GAME OVER").attr({ fill : "#f00", "font-size" : 50, "font-family" : "courier"})
+    })      
+
   messageQueue.plug(levels)
 }
 
@@ -78,13 +82,9 @@ function Audio() {
 	}
 }
 
-function Players(maze, messageQueue, targets, r) {
-  var player1 = Player(1, KeyMap([[87, up], [83, down], [65, left], [68, right]], [70]), maze, targets, messageQueue, r)
-  var player2 = Player(2, KeyMap([[38, up], [40, down], [37, left], [39, right]], [189, 109, 18]), maze, targets, messageQueue, r)
-  messageQueue.ofType("gameover").Skip(1).Subscribe(function(){
-    var pos = maze.centerMessagePos()
-    r.text(pos.x, pos.y, "GAME OVER").attr({ fill : "#f00", "font-size" : 50, "font-family" : "courier"})
-  })
+function Players(messageQueue, targets, r) {
+  var player1 = Player(1, KeyMap([[87, up], [83, down], [65, left], [68, right]], [70]), targets, messageQueue, r)
+  var player2 = Player(2, KeyMap([[38, up], [40, down], [37, left], [39, right]], [189, 109, 18]), targets, messageQueue, r)
 }
 
 function Monsters(messageQueue, targets, r) {
@@ -119,7 +119,7 @@ function KeyMap(directionKeyMap, fireKey) {
 	}
 }
 
-function Player(id, keyMap, maze, targets, messageQueue, r) {
+function Player(id, keyMap, targets, messageQueue, r) {
 	var player = {
 		id : id,
 		keyMap : keyMap,
@@ -135,9 +135,10 @@ function Player(id, keyMap, maze, targets, messageQueue, r) {
 	  .Where(function(lives) { return lives.lives == 0})
 	  .Select(function() { return { message : "gameover", player : player} } )
   var joinMessage = { message : "join", player : player}
+  var levelStart = messageQueue.ofType("level-started")
 	var join = lives
 	  .Skip(1)
-    .Merge(messageQueue.ofType("level-started"))
+    .Merge(levelStart)
 	  .TakeUntil(gameOver)
     .Select(always(joinMessage))    
   messageQueue.plug(join)  
@@ -147,8 +148,8 @@ function Player(id, keyMap, maze, targets, messageQueue, r) {
 	Score(player, messageQueue, r)
 	LivesDisplay(player, lives, messageQueue, r)  
 	toConsole(gameOver, "GAME OVER " + player)
-	
-  join.Subscribe(function() { PlayerFigure(player, maze, messageQueue, targets, r) })	
+	toConsole(join, "JOIN")
+  join.CombineWithLatestOf(levelStart, latter).Subscribe(function(level) { PlayerFigure(player, level.maze, messageQueue, targets, r) })	
 	return player;
 }      
 
