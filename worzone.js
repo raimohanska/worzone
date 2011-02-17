@@ -5,7 +5,7 @@ $(function() {
   var messageQueue = MessageQueue()  
   var targets = Targets(messageQueue)
 
-  Monsters(maze, messageQueue, targets, r)
+  Monsters(messageQueue, targets, r)
   Players(maze, messageQueue, targets, r)
 
   messageQueue.ofType("fire").Subscribe(function(fire) { 
@@ -25,7 +25,7 @@ function Levels(messageQueue, maze, r) {
     messageQueue.ofType("level-finished")
     .StartWith(_)
     .Scan(0, function(prev, _) { return prev + 1 })
-    .Select(function(level) { return { message : "level-started", level : level} })
+    .Select(function(level) { return { message : "level-started", level : level, maze : maze} })
     
   messageQueue.plug(levels)
   
@@ -83,10 +83,11 @@ function Players(maze, messageQueue, targets, r) {
   })
 }
 
-function Monsters(maze, messageQueue, targets, r) {
-  function burwor() { Burwor(maze, messageQueue, targets, r) }
-  function garwor() { Garwor(maze, messageQueue, targets, r) }
-  messageQueue.ofType("level-started").Subscribe(function(){
+function Monsters(messageQueue, targets, r) {
+  messageQueue.ofType("level-started").Subscribe(function(level) {
+    var maze = level.maze
+    function burwor() { Burwor(maze, messageQueue, targets, r) }
+    function garwor() { Garwor(maze, messageQueue, targets, r) }
     _.range(0, 5).forEach(burwor)
     var monsterHit = messageQueue.ofType("hit")
       .Where(function (hit) { return hit.target.monster })
