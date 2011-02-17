@@ -7,10 +7,6 @@ $(function() {
 
   Monsters(messageQueue, targets, r)
   Players(messageQueue, targets, r)
-
-  messageQueue.ofType("fire").Subscribe(function(fire) { 
-	  Bullet(fire.pos, fire.shooter, fire.dir, maze, targets, messageQueue, r) 
-  })         
   
   var audio = Audio()              
   GameSounds(messageQueue, audio)
@@ -27,18 +23,22 @@ function Levels(messageQueue, maze, r) {
     .Scan(0, function(prev, _) { return prev + 1 })
     .Select(function(level) { return { message : "level-started", level : level, maze : maze} })
 
-    LevelScope(messageQueue).inScope(function(levelStart, levelEnd) {
-      levelStart.Subscribe(function(level) {
-        var pos = level.maze.levelNumberPos()
-        var text = r.text(pos.x, pos.y, "Level " + level.level).attr({ fill : "#FF0"})
-        levelEnd.Subscribe(function(){ text.remove() })
-      })    
-    })
+  LevelScope(messageQueue).inScope(function(levelStart, levelEnd) {
+    levelStart.Subscribe(function(level) {
+      var pos = level.maze.levelNumberPos()
+      var text = r.text(pos.x, pos.y, "Level " + level.level).attr({ fill : "#FF0"})
+      levelEnd.Subscribe(function(){ text.remove() })
+    })    
+  })
 
-    messageQueue.ofType("gameover").Skip(1).Subscribe(function(){
-      var pos = maze.centerMessagePos()
-      r.text(pos.x, pos.y, "GAME OVER").attr({ fill : "#f00", "font-size" : 50, "font-family" : "courier"})
-    })      
+  messageQueue.ofType("gameover").Skip(1).Subscribe(function(){
+    var pos = maze.centerMessagePos()
+    r.text(pos.x, pos.y, "GAME OVER").attr({ fill : "#f00", "font-size" : 50, "font-family" : "courier"})
+  })      
+  
+  messageQueue.ofType("fire").Subscribe(function(fire) { 
+	  Bullet(fire.pos, fire.shooter, fire.dir, maze, targets, messageQueue, r) 
+  })         
 
   messageQueue.plug(levels)
 }
