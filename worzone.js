@@ -16,26 +16,21 @@ $(function() {
 })
 
 function Levels(messageQueue, targets, r) {
-  var firstMaze = Maze(r)
-  
-  var levels = 
-    messageQueue.ofType("level-finished")
+  var gameOver = messageQueue.ofType("gameover").Skip(1)
+  var levelFinished = messageQueue.ofType("level-finished")
+  var levels = levelFinished
     .StartWith(_)
     .Scan(0, function(prev, _) { return prev + 1 })
-    .Select(function(level) { return { message : "level-started", level : level, maze : firstMaze} })
-
-  LevelScope(messageQueue).inScope(function(levelStart, levelEnd) {
-    levelStart.Subscribe(function(level) {
-      var pos = level.maze.levelNumberPos()
-      var text = r.text(pos.x, pos.y, "Level " + level.level).attr({ fill : "#FF0"})
-      levelEnd.Subscribe(function(){ text.remove() })
-    })    
+    .Select(function(level) { return { message : "level-started", level : level, maze : Maze(r), levelEnd : levelFinished.Merge(gameOver)} })
+  levels.Subscribe(function(level) {
+    var pos = level.maze.levelNumberPos()
+    var text = r.text(pos.x, pos.y, "Level " + level.level).attr({ fill : "#FF0"})
+    console.log("Level " + level.level + " at " + pos.x + ", " + pos.y + " = " + text)
+    level.levelEnd.Subscribe(function(){ text.remove() })    
   })
   
-  var currentMaze = messageQueue.ofType("level-started").Select(function(level) { return level.maze })
-
-  messageQueue.ofType("gameover").Skip(1).CombineWithLatestOf(currentMaze, latter).Subscribe(function(maze){
-    var pos = maze.centerMessagePos()
+  gameOver.CombineWithLatestOf(levels, latter).Subscribe(function(level){
+    var pos = level.maze.centerMessagePos()
     r.text(pos.x, pos.y, "GAME OVER").attr({ fill : "#f00", "font-size" : 50, "font-family" : "courier"})
   })      
   
@@ -155,18 +150,18 @@ function Player(id, keyMap, targets, messageQueue, r) {
 }      
 
 function LivesDisplay(player, lives, messageQueue, r) {
-  LevelScope(messageQueue).inScope(function(levelStart, levelEnd) {
-    levelStart.CombineWithLatestOf(lives, both).Subscribe(function(tuple){
-      var pos = tuple[0].maze.playerScorePos(player)
+  messageQueue.ofType("level-started")  
+    .CombineWithLatestOf(lives, both).Subscribe(function(tuple) {
+      var level = tuple[0]
+      var pos = level.maze.playerScorePos(player)
       _.range(0, tuple[1].lives).forEach(function(index) {
         var image = PlayerImage(player).create(pos.add(Point(index * 20, 10)), 8, r)
         lives
           .Where(function(lives) { return lives.lives <= index + 1})
-          .Merge(levelEnd)
+          .Merge(level.levelEnd)
           .Subscribe(function(lives) { image.remove() })
       })    
     })
-  })  
 }
 
 function Score(player, messageQueue, r) {                                        
@@ -176,33 +171,13 @@ function Score(player, messageQueue, r) {
     .Scan(0, function(current, delta) { return current + delta })
     .StartWith(0)
   messageQueue.plug(score.Select(function(points) { return { message : "score", player : player, score : points} } ))
-  LevelScope(messageQueue).inScope(function(levelStart, levelEnd) {
-    levelStart.Subscribe(function(level){
-      var pos = level.maze.playerScorePos(player)
-      var scoreDisplay = r.text(pos.x, pos.y - 10, "?").attr({ fill : "#ff0"})
-      score.TakeUntil(levelEnd).Subscribe(function(points) { scoreDisplay.attr({ text : points }) })
-      levelEnd.Subscribe(function(){ scoreDisplay.remove() })
-    })
+  messageQueue.ofType("level-started").Subscribe(function(level){
+    var pos = level.maze.playerScorePos(player)
+    var scoreDisplay = r.text(pos.x, pos.y - 10, "?").attr({ fill : "#ff0"})
+    score.TakeUntil(level.levelEnd).Subscribe(function(points) { scoreDisplay.attr({ text : points }) })
+    level.levelEnd.Subscribe(function(){ scoreDisplay.remove() })
   })
 }          
-
-function LevelScope(messageQueue, parent) {
-  return Scope(messageQueue.ofType("level-started"), messageQueue.ofType("level-finished"), parent)
-}
-
-function Scope(start, end, parent) {
-  if (parent) end = end.Merge(parent.end)
-  return {
-    start : start.Take(1),
-    end : end.Take(1),
-    subscope : function(subStart, subEnd) {
-      return Scope(start, end, this)
-    },
-    inScope: function(fn) {
-      fn(start, end)
-    }
-  }
-}   
 
 function ControlInput(directionInput, fireInput) {
     return {directionInput : directionInput, fireInput : fireInput}
@@ -552,7 +527,7 @@ function Maze(raphael) {
 	}
 	var corner = blockCorner(Point(0, 0))
 	var bottomRight = blockCorner(Point(width, height)) 
-	raphael.rect(corner.x, corner.y, bottomRight.x, bottomRight.y).attr({fill : "#000"})
+	//raphael.rect(corner.x, corner.y, bottomRight.x, bottomRight.y).attr({fill : "#000"})
 	forEachBlock(function(x, y) { 
 	  var block = Point(x, y) 
 	  if (isWall(block)) { 
