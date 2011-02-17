@@ -26,7 +26,7 @@ function Levels(messageQueue, targets, r) {
     .Delay(3000)
     .Select(function(level) { 
       var levelEnd = levelFinished.Merge(gameOver)      
-      return { message : "level-started", level : level.level, maze : Maze(levelEnd, r), levelEnd : levelEnd } 
+      return { message : "level-started", level : level.level, maze : Maze(level.level), levelEnd : levelEnd } 
     })
   levelStarting.Subscribe(function() {
     var text = r.text(240, 200, "GET READY").attr({ fill : "#f00", "font-size" : 50, "font-family" : "courier"})
@@ -36,6 +36,7 @@ function Levels(messageQueue, targets, r) {
   })    
     
   levels.Subscribe(function(level) {
+    level.maze.draw(level.levelEnd, r)    
     var pos = level.maze.levelNumberPos()
     var text = r.text(pos.x, pos.y, "Level " + level.level).attr({ fill : "#FF0"})
     console.log("Level " + level.level + " at " + pos.x + ", " + pos.y + " = " + text)
@@ -470,25 +471,47 @@ function MessageQueue() {
     return messageQueue
 }
 
-function Maze(levelEnd, raphael) {
-	var data =
-	  [ "*******************",
-	    "*                 *",
-	    "* *******  ****** *",
-	    "* *             * *",
-	    "* *   *******   * *",
-	    "* *   *     *   * *",
-	    "* *             * *",
-	    "*        C        *",
-	    "* *   *******   * *",
-	    "* *             * *",
-	    "* *             * *",
-	    "* *             * *",
-	    "* *******  ****** *",
-	    "*                 *",
-	    "* *************** *",
-	    "*1*5XXXXXLXXXX60*2*",
-	    "***XXXXXXXXXXXXX***" ]
+var mazes = [
+  [ "*******************",
+    "*                 *",
+    "* *******  ****** *",
+    "* *             * *",
+    "* *   *******   * *",
+    "* *   *     *   * *",
+    "* *             * *",
+    "*        C        *",
+    "* *   *******   * *",
+    "* *             * *",
+    "* *             * *",
+    "* *             * *",
+    "* *******  ****** *",
+    "*                 *",
+    "* *************** *",
+    "*1*5XXXXXLXXXX60*2*",
+    "***XXXXXXXXXXXXX***" ],
+    
+    [ "*******************",
+      "*                 *",
+      "* *******  ****** *",
+      "* *             * *",
+      "* * * ******* * * *",
+      "* * * *     * * * *",
+      "* * * *     * * * *",
+      "* * *    C    *   *",
+      "* * * *** *** *****",
+      "* * *   * * * *   *",
+      "* * * * * * * * * *",
+      "*   * *         * *",
+      "***** *** * ***** *",
+      "*       * *       *",
+      "* *************** *",
+      "*1*5XXXXXLXXXX60*2*",
+      "***XXXXXXXXXXXXX***" ]
+]
+
+
+function Maze(level) {
+  var data = mazes[level % 2]
 	var blockSize = 50
 	var wall = 4           
 	var fullBlock = blockSize + wall
@@ -543,22 +566,7 @@ function Maze(levelEnd, raphael) {
     }
 		return blockThat(function(x, y) { return (data[y][x] == character)})
 	}
-	var corner = blockCorner(Point(0, 0))
-	var bottomRight = blockCorner(Point(width, height)) 
-  
-  var elements = raphael.set()
-	forEachBlock(function(x, y) { 
-	  var block = Point(x, y) 
-	  if (isWall(block)) { 
-	    var corner = blockCorner(block)
-	    var size = sizeOf(block)
-	    elements.push(raphael.rect(corner.x, corner.y, size.x, size.y)
-	      .attr({ stroke : "#808", fill : "#808"}))
-	}})                            
-	levelEnd.Subscribe(function() {
-	  elements.remove()
-	})
-  
+    
   function accessible(pos, objectRadiusX, objectRadiusY, predicate) {
 	  if (!objectRadiusY) objectRadiusY = objectRadiusX
 		var radiusX = objectRadiusX 
@@ -594,7 +602,22 @@ function Maze(levelEnd, raphael) {
 		    var pixelPos = blockCenter(blockPos)
 		    if (filter(pixelPos)) return pixelPos
 	    }
-	  }
+	  },
+	  draw : function(levelEnd, raphael) {
+      var elements = raphael.set()
+    	forEachBlock(function(x, y) { 
+    	  var block = Point(x, y) 
+    	  if (isWall(block)) { 
+    	    var corner = blockCorner(block)
+    	    var size = sizeOf(block)
+    	    elements.push(raphael.rect(corner.x, corner.y, size.x, size.y)
+    	      .attr({ stroke : "#808", fill : "#808"}))
+    	}})                            
+    	levelEnd.Subscribe(function() {
+    	  console.log("end level")
+    	  elements.remove()
+    	})
+    }
 	}
 }
                               
