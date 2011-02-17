@@ -27,13 +27,16 @@ function Levels(messageQueue, maze, r) {
     .Scan(0, function(prev, _) { return prev + 1 })
     .Select(function(level) { return { message : "level-started", level : level, maze : maze} })
     .Take(1)
+
+    LevelScope(messageQueue).inScope(function(levelStart, levelEnd) {
+      levelStart.Subscribe(function(level) {
+        var pos = level.maze.levelNumberPos()
+        var text = r.text(pos.x, pos.y, "Level " + level.level).attr({ fill : "#FF0"})
+        levelEnd.Subscribe(function(){ text.remove() })
+      })    
+    })
     
   messageQueue.plug(levels)
-  
-  var text = r.text(maze.levelNumberPos().x, maze.levelNumberPos().y, "").attr({ fill : "#FF0"})
-  levels.Subscribe(function(level) {
-    text.attr({ text : "Level " + level.level})
-  })
 }
 
 function GameSounds(messageQueue, audio) {
