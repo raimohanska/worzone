@@ -97,8 +97,8 @@ function Monsters(messageQueue, targets, r) {
       .Select(always({ message : "level-finished"}))
       .Take(1)
     monsterHit
-      .TakeUntil(levelFinished)
       .Delay(2000)
+      .TakeUntil(levelFinished)
       .Subscribe(garwor)                                   
     ticker(5000)
       .TakeUntil(levelFinished)
@@ -157,7 +157,7 @@ function LivesDisplay(player, lives, messageQueue, r) {
         var image = PlayerImage(player).create(pos.add(Point(index * 20, 10)), 8, r)
         lives
           .Where(function(lives) { return lives.lives <= index + 1})
-          .TakeUntil(messageQueue.ofType("level-finished"))
+          .Merge(levelEnd)
           .Subscribe(function(lives) { image.remove() })
       })    
     })
@@ -402,7 +402,7 @@ function Figure(startPos, image, controlInput, maze, access, messageQueue, r) {
 function Keyboard() {
 	var allKeyUps = $(document).toObservable("keyup")
 	var allKeyDowns = $(document).toObservable("keydown")
-	allKeyDowns.Subscribe(function(event) {console.log(event.keyCode)})
+	//allKeyDowns.Subscribe(function(event) {console.log(event.keyCode)})
 	function keyCodeIs(keyCode) { return function(event) { return event.keyCode == keyCode} }
 	function keyCodeIsOneOf(keyCodes) { return function(event) { return keyCodes.indexOf(event.keyCode) >= 0} }
 	function keyUps(keyCode) { return allKeyUps.Where(keyCodeIs(keyCode)) }
