@@ -26,16 +26,13 @@ function Levels(messageQueue, maze, r) {
     .StartWith(_)
     .Scan(0, function(prev, _) { return prev + 1 })
     .Select(function(level) { return { message : "level-started", level : level, maze : maze} })
+    .Take(1)
     
   messageQueue.plug(levels)
   
   var text = r.text(maze.levelNumberPos().x, maze.levelNumberPos().y, "").attr({ fill : "#FF0"})
   levels.Subscribe(function(level) {
     text.attr({ text : "Level " + level.level})
-  })
-  
-  messageQueue.ofType("level-finished").Subscribe(function(){
-    r.clear()
   })
 }
 
@@ -153,16 +150,18 @@ function Player(id, keyMap, maze, targets, messageQueue, r) {
 }      
 
 function LivesDisplay(player, lives, messageQueue, r) {
-  messageQueue.ofType("level-started").CombineWithLatestOf(lives, both).Subscribe(function(tuple){
-    var pos = tuple[0].maze.playerScorePos(player)
-    _.range(0, tuple[1].lives).forEach(function(index) {
-      var image = PlayerImage(player).create(pos.add(Point(index * 20, 10)), 8, r)
-      lives
-        .Where(function(lives) { return lives.lives <= index + 1})
-        .TakeUntil(messageQueue.ofType("level-finished"))
-        .Subscribe(function(lives) { image.remove() })
-    })    
-  })
+  LevelScope(messageQueue).inScope(function(levelStart, levelEnd) {
+    levelStart.CombineWithLatestOf(lives, both).Subscribe(function(tuple){
+      var pos = tuple[0].maze.playerScorePos(player)
+      _.range(0, tuple[1].lives).forEach(function(index) {
+        var image = PlayerImage(player).create(pos.add(Point(index * 20, 10)), 8, r)
+        lives
+          .Where(function(lives) { return lives.lives <= index + 1})
+          .TakeUntil(messageQueue.ofType("level-finished"))
+          .Subscribe(function(lives) { image.remove() })
+      })    
+    })
+  })  
 }
 
 function Score(player, messageQueue, r) {                                        
@@ -172,12 +171,33 @@ function Score(player, messageQueue, r) {
     .Scan(0, function(current, delta) { return current + delta })
     .StartWith(0)
   messageQueue.plug(score.Select(function(points) { return { message : "score", player : player, score : points} } ))
-  messageQueue.ofType("level-started").Subscribe(function(level){
-    var pos = level.maze.playerScorePos(player)
-    var scoreDisplay = r.text(pos.x, pos.y - 10, "?").attr({ fill : "#ff0"})
-    score.TakeUntil(messageQueue.ofType("level-finished")).Subscribe(function(points) { scoreDisplay.attr({ text : points }) })                   
+  LevelScope(messageQueue).inScope(function(levelStart, levelEnd) {
+    levelStart.Subscribe(function(level){
+      var pos = level.maze.playerScorePos(player)
+      var scoreDisplay = r.text(pos.x, pos.y - 10, "?").attr({ fill : "#ff0"})
+      score.TakeUntil(levelEnd).Subscribe(function(points) { scoreDisplay.attr({ text : points }) })
+      levelEnd.Subscribe(function(){ scoreDisplay.remove() })
+    })
   })
-}             
+}          
+
+function LevelScope(messageQueue, parent) {
+  return Scope(messageQueue.ofType("level-started"), messageQueue.ofType("level-finished"), parent)
+}
+
+function Scope(start, end, parent) {
+  if (parent) end = end.Merge(parent.end)
+  return {
+    start : start.Take(1),
+    end : end.Take(1),
+    subscope : function(subStart, subEnd) {
+      return Scope(start, end, this)
+    },
+    inScope: function(fn) {
+      fn(start, end)
+    }
+  }
+}   
 
 function ControlInput(directionInput, fireInput) {
     return {directionInput : directionInput, fireInput : fireInput}
