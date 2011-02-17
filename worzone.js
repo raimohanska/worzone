@@ -25,7 +25,6 @@ function Levels(messageQueue, targets, r) {
       var levelEnd = levelFinished.Merge(gameOver)      
       return { message : "level-started", level : level, maze : Maze(levelEnd, r), levelEnd : levelEnd } 
     })
-    .Take(1)
   levels.Subscribe(function(level) {
     var pos = level.maze.levelNumberPos()
     var text = r.text(pos.x, pos.y, "Level " + level.level).attr({ fill : "#FF0"})
