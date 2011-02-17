@@ -33,6 +33,10 @@ function Levels(messageQueue, maze, r) {
   levels.Subscribe(function(level) {
     text.attr({ text : "Level " + level.level})
   })
+  
+  messageQueue.ofType("level-finished").Subscribe(function(){
+    r.clear()
+  })
 }
 
 function GameSounds(messageQueue, audio) {
@@ -92,7 +96,7 @@ function Monsters(messageQueue, targets, r) {
     var monsterHit = messageQueue.ofType("hit")
       .Where(function (hit) { return hit.target.monster })
     var levelFinished = monsterHit
-      .Skip(15)
+      .Skip(1)
       .Select(always({ message : "level-finished"}))
       .Take(1)
     monsterHit
@@ -140,38 +144,39 @@ function Player(id, keyMap, maze, targets, messageQueue, r) {
 	messageQueue.plug(lives)
 	messageQueue.plug(gameOver)
   
-	Score(player, maze, messageQueue, r)
-	LivesDisplay(player, lives, maze, r)  
+	Score(player, messageQueue, r)
+	LivesDisplay(player, lives, messageQueue, r)  
 	toConsole(gameOver, "GAME OVER " + player)
 	
   join.Subscribe(function() { PlayerFigure(player, maze, messageQueue, targets, r) })	
 	return player;
 }      
 
-function LivesDisplay(player, lives, maze, r) {
-  var pos = maze.playerScorePos(player)
-  lives.Take(1).Subscribe(function(status) {
-    _.range(0, status.lives).forEach(function(index) {
+function LivesDisplay(player, lives, messageQueue, r) {
+  messageQueue.ofType("level-started").CombineWithLatestOf(lives, both).Subscribe(function(tuple){
+    var pos = tuple[0].maze.playerScorePos(player)
+    _.range(0, tuple[1].lives).forEach(function(index) {
       var image = PlayerImage(player).create(pos.add(Point(index * 20, 10)), 8, r)
       lives
         .Where(function(lives) { return lives.lives <= index + 1})
+        .TakeUntil(messageQueue.ofType("level-finished"))
         .Subscribe(function(lives) { image.remove() })
-    })
+    })    
   })
 }
 
-function Score(player, maze, messageQueue, r) {                                        
+function Score(player, messageQueue, r) {                                        
   var score = messageQueue.ofType("hit")
     .Where(function(hit) { return hit.shooter && hit.shooter.player == player} )
     .Select(function(hit) { return hit.target.points })
     .Scan(0, function(current, delta) { return current + delta })
     .StartWith(0)
   messageQueue.plug(score.Select(function(points) { return { message : "score", player : player, score : points} } ))
-
-  var pos = maze.playerScorePos(player)
-  var scoreDisplay = r.text(pos.x, pos.y - 10, "0").attr({ fill : "#ff0"})
-
-  score.Subscribe(function(points) { scoreDisplay.attr({ text : points }) })               
+  messageQueue.ofType("level-started").Subscribe(function(level){
+    var pos = level.maze.playerScorePos(player)
+    var scoreDisplay = r.text(pos.x, pos.y - 10, "?").attr({ fill : "#ff0"})
+    score.TakeUntil(messageQueue.ofType("level-finished")).Subscribe(function(points) { scoreDisplay.attr({ text : points }) })                   
+  })
 }             
 
 function ControlInput(directionInput, fireInput) {
@@ -579,6 +584,7 @@ function randomInt(limit) { return Math.floor(Math.random() * limit) }
 function identity(x) { return x }
 function first(xs) { return xs ? xs[0] : undefined}
 function latter (_, second) { return second }      
+function both (first, second) { return [first, second] }      
 function extractProperty(property) { return function(x) { return x.property } }
 Rx.Observable.prototype.CombineWithLatestOf = function(otherStream, combinator) {    
   var mainStream = this
