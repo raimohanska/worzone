@@ -148,8 +148,6 @@ function Player(id, keyMap, targets, messageQueue, r) {
   
 	Score(player, messageQueue, r)
 	LivesDisplay(player, lives, messageQueue, r)  
-	toConsole(gameOver, "GAME OVER " + player)
-	toConsole(join, "JOIN")
   join.CombineWithLatestOf(levelStart, latter).Subscribe(function(level) { PlayerFigure(player, level.maze, messageQueue, targets, r) })	
 	return player;
 }      
