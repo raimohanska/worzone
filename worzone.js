@@ -21,7 +21,11 @@ function Levels(messageQueue, targets, r) {
   var levels = levelFinished
     .StartWith(_)
     .Scan(0, function(prev, _) { return prev + 1 })
-    .Select(function(level) { return { message : "level-started", level : level, maze : Maze(r), levelEnd : levelFinished.Merge(gameOver)} })
+    .Select(function(level) { 
+      var levelEnd = levelFinished.Merge(gameOver)      
+      return { message : "level-started", level : level, maze : Maze(levelEnd, r), levelEnd : levelEnd } 
+    })
+    .Take(1)
   levels.Subscribe(function(level) {
     var pos = level.maze.levelNumberPos()
     var text = r.text(pos.x, pos.y, "Level " + level.level).attr({ fill : "#FF0"})
@@ -452,7 +456,7 @@ function MessageQueue() {
     return messageQueue
 }
 
-function Maze(raphael) {
+function Maze(levelEnd, raphael) {
 	var data =
 	  [ "*******************",
 	    "*                 *",
@@ -527,15 +531,19 @@ function Maze(raphael) {
 	}
 	var corner = blockCorner(Point(0, 0))
 	var bottomRight = blockCorner(Point(width, height)) 
-	//raphael.rect(corner.x, corner.y, bottomRight.x, bottomRight.y).attr({fill : "#000"})
+  
+  var elements = raphael.set()
 	forEachBlock(function(x, y) { 
 	  var block = Point(x, y) 
 	  if (isWall(block)) { 
 	    var corner = blockCorner(block)
 	    var size = sizeOf(block)
-	    raphael.rect(corner.x, corner.y, size.x, size.y)
-	      .attr({ stroke : "#808", fill : "#808"})
+	    elements.push(raphael.rect(corner.x, corner.y, size.x, size.y)
+	      .attr({ stroke : "#808", fill : "#808"}))
 	}})                            
+	levelEnd.Subscribe(function() {
+	  elements.remove()
+	})
   
   function accessible(pos, objectRadiusX, objectRadiusY, predicate) {
 	  if (!objectRadiusY) objectRadiusY = objectRadiusX
