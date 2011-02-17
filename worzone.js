@@ -12,10 +12,10 @@ $(function() {
   
   $('#sound').click(function() { audio.toggle() })
   
-  Levels(messageQueue, r)  
+  Levels(messageQueue, targets, r)  
 })
 
-function Levels(messageQueue, r) {
+function Levels(messageQueue, targets, r) {
   var maze = Maze(r)
   
   var levels = 
