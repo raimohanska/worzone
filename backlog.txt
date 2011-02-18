@@ -6,7 +6,9 @@ Bugs
 - Sometimes man figure is detached from actual location
 
 Features
-
+            
+- Start screen with ASCII graphics
+- Get Ready, Game Over with ASCII graphics
 - more and eviler monsters for each level
 - better monster logic (garwor to follow players?)
 - monsters should not kill each other
