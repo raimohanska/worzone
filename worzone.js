@@ -522,7 +522,7 @@ var mazes = [
 function Maze(level) {
   var data = mazes[level % 2]
 	var blockSize = 50
-	var wall = 4           
+	var wall = 5           
 	var fullBlock = blockSize + wall
 	var width = data[0].length
 	var height = data.length
@@ -620,7 +620,7 @@ function Maze(level) {
     	    var corner = blockCorner(block)
     	    var size = sizeOf(block)
     	    elements.push(raphael.rect(corner.x, corner.y, size.x, size.y)
-    	      .attr({ stroke : "#808", fill : "#808"}))
+    	      .attr({ stroke : "#008", fill : "#008"}))
     	}})                            
     	levelEnd.Subscribe(function() {
     	  elements.remove()
