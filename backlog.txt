@@ -4,9 +4,10 @@ Bugs
 - Level does not get cleared in FF
 - Scores, Lives displays are reseted on each level
 - Sometimes man figure is detached from actual location
+- Monsters should be removed on Game Over too
 
 Features
-            
+                                                     
 - Start screen with ASCII graphics
 - Get Ready, Game Over with ASCII graphics
 - more and eviler monsters for each level
@@ -16,5 +17,6 @@ Features
 
 Improvements
 
+- Animation for "man shooting"
 - Alpha channel for PNGs
 - PNGs to SVGs
