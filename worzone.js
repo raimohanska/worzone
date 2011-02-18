@@ -152,6 +152,7 @@ function Player(id, keyMap, targets, messageQueue, r) {
 	  .Scan(startLives, function(lives, hit) { return lives - 1 })
 	  .StartWith(startLives)
 	  .Select( function(lives) { return { message : "lives", player : player, lives : lives}})
+	  .Publish()
 	var gameOver = lives
 	  .Where(function(lives) { return lives.lives == 0})
 	  .Select(function() { return { message : "gameover", player : player} } )
@@ -162,13 +163,13 @@ function Player(id, keyMap, targets, messageQueue, r) {
     .Merge(levelStart)
 	  .TakeUntil(gameOver)
     .Select(always(joinMessage))    
-  messageQueue.plug(join)  
-	messageQueue.plug(lives)
-	messageQueue.plug(gameOver)
-  
 	Score(player, messageQueue, r)
 	LivesDisplay(player, lives, messageQueue, r)  
   join.CombineWithLatestOf(levelStart, latter).Subscribe(function(level) { PlayerFigure(player, level.maze, messageQueue, targets, r) })	
+  messageQueue.plug(join)  
+	messageQueue.plug(lives)
+	messageQueue.plug(gameOver)
+	lives.Connect()
 	return player;
 }      
 
@@ -176,7 +177,7 @@ function LivesDisplay(player, lives, messageQueue, r) {
   messageQueue.ofType("level-started")  
     .DecorateWithLatestOf(lives, "lives").Subscribe(function(level) {
       var pos = level.maze.playerScorePos(player)
-      _.range(0, level.lives.lives).forEach(function(index) {
+      _.range(0, level.lives.lives - 1).forEach(function(index) {
         var image = PlayerImage(player).create(pos.add(Point(index * 20, 10)), 8, r)
         lives
           .Where(function(lives) { return lives.lives <= index + 1})
@@ -192,13 +193,15 @@ function Score(player, messageQueue, r) {
     .Select(function(hit) { return hit.target.points })
     .Scan(0, function(current, delta) { return current + delta })
     .StartWith(0)
+    .Publish()
   messageQueue.plug(score.Select(function(points) { return { message : "score", player : player, score : points} } ))
   messageQueue.ofType("level-started").Subscribe(function(level){
     var pos = level.maze.playerScorePos(player)
     var scoreDisplay = r.text(pos.x, pos.y - 10, "?").attr({ fill : "#ff0"})
     score.TakeUntil(level.levelEnd).Subscribe(function(points) { scoreDisplay.attr({ text : points }) })
     level.levelEnd.Subscribe(function(){ scoreDisplay.remove() })
-  })
+  })          
+  score.Connect()
 }          
 
 function ControlInput(directionInput, fireInput) {
