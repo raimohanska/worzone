@@ -1,0 +1,19 @@
+Bugs
+
+- Runs slow in Firefox
+- Level does not get cleared in FF
+- Scores, Lives displays are reseted on each level
+- Sometimes man figure is detached from actual location
+
+Features
+
+- more and eviler monsters for each level
+- better monster logic (garwor to follow players?)
+- monsters should not kill each other
+- player should be ejected from the starting point in 10 seconds and should not be able to go back
+- thorwors and whatnot
+
+Improvements
+
+- Alpha channel for PNGs
+- PNGs to SVGs

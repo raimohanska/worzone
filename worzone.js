@@ -23,15 +23,18 @@ function Levels(messageQueue, targets, r) {
     .Scan(0, function(prev, _) { return prev + 1 })
     .Select(function(level) { return { message : "level-starting", level : level} })
   var levels = levelStarting
-    .Delay(3000)
+    .Delay(4000)
     .Select(function(level) { 
       var levelEnd = levelFinished.Merge(gameOver)      
       return { message : "level-started", level : level.level, maze : Maze(level.level), levelEnd : levelEnd } 
     })
   levelStarting.Subscribe(function() {
-    var text = r.text(240, 200, "GET READY").attr({ fill : "#f00", "font-size" : 50, "font-family" : "courier"})
+    var getReady = r.image(imgPath + "getready.png", 50, 80, 400, 100)
+    var go
+    setTimeout(function() {  go = r.image(imgPath + "go.png", 200, 200, 100, 90) }, 2000)
     levels.Take(1).Subscribe(function() {
-      text.remove()
+      getReady.remove()                                  
+      go.remove()
     })
   })    
     
@@ -116,7 +119,7 @@ function Monsters(messageQueue, targets, r) {
     var monsterHit = messageQueue.ofType("hit")
       .Where(function (hit) { return hit.target.monster })
     var levelFinished = monsterHit
-      .Skip(15)
+      .Skip(1)
       .Select(always({ message : "level-finished"}))
       .Take(1)
     monsterHit
