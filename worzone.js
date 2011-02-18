@@ -39,7 +39,6 @@ function Levels(messageQueue, targets, r) {
     level.maze.draw(level.levelEnd, r)    
     var pos = level.maze.levelNumberPos()
     var text = r.text(pos.x, pos.y, "Level " + level.level).attr({ fill : "#FF0"})
-    console.log("Level " + level.level + " at " + pos.x + ", " + pos.y + " = " + text)
     level.levelEnd.Subscribe(function(){ text.remove() })    
   })
   
@@ -621,7 +620,6 @@ function Maze(level) {
     	      .attr({ stroke : "#808", fill : "#808"}))
     	}})                            
     	levelEnd.Subscribe(function() {
-    	  console.log("end level")
     	  elements.remove()
     	})
     }
