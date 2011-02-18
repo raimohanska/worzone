@@ -48,8 +48,12 @@ function Levels(messageQueue, targets, r) {
     r.text(pos.x, pos.y, "GAME OVER").attr({ fill : "#f00", "font-size" : 50, "font-family" : "courier"})
   })      
   
-  messageQueue.ofType("fire").Subscribe(function(fire) { 
-	  Bullet(fire.pos, fire.shooter, fire.dir, fire.maze, targets, messageQueue, r) 
+  messageQueue.ofType("fire").Subscribe(function(fire) {         
+    function targetFilter(target) {
+      if (fire.shooter.monster && target.monster) return false;      
+      return fire.shooter != target
+    }
+	  Bullet(fire.pos, fire.shooter, fire.dir, fire.maze, targets, targetFilter, messageQueue, r) 
   })         
 
   messageQueue.plug(levels)
@@ -229,8 +233,7 @@ function LatestValueHolder(stream) {
 	return { value : function() { return value }}
 }
 
-function Bullet(startPos, shooter, velocity, maze, targets, messageQueue, r) {      
-  var targetFilter = always(true)
+function Bullet(startPos, shooter, velocity, maze, targets, targetFilter, messageQueue, r) {      
 	var radius = 3
 	var bullet = r.circle(startPos.x, startPos.y, radius).attr({fill: "#f00"})
 	bullet.radius = radius
@@ -379,10 +382,12 @@ function Figure(startPos, image, controlInput, maze, access, messageQueue, r) {
   	  return { message : "move", object : figure, pos : pos, dir : dir }
     })         
     
-    image.animate(figure, status)    
-
+    image.animate(figure, status)
+    
     var fire = status.SampledBy(controlInput.fireInput).Select(function(status) {             
-  	  return {message : "fire", pos : status.pos.add(status.dir.withLength(radius + 5)), dir : status.dir, shooter : figure, maze : maze} 
+  	  return {  message : "fire", pos : status.pos.add(status.dir.withLength(radius + 5)),
+  	            dir : status.dir, shooter : figure, maze : maze,
+  	         } 
     }).TakeUntil(removed)
 
     var start = movements.Take(1).Select(function() { return { message : "start", object : figure} })
