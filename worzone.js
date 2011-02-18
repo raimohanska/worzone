@@ -117,7 +117,7 @@ function Monsters(messageQueue, targets, r) {
     var monsterHit = messageQueue.ofType("hit")
       .Where(function (hit) { return hit.target.monster })
     var levelFinished = monsterHit
-      .Skip(15)
+      .Skip(1)
       .Select(always({ message : "level-finished"}))
       .Take(1)
     monsterHit
@@ -174,10 +174,9 @@ function Player(id, keyMap, targets, messageQueue, r) {
 
 function LivesDisplay(player, lives, messageQueue, r) {
   messageQueue.ofType("level-started")  
-    .CombineWithLatestOf(lives, both).Subscribe(function(tuple) {
-      var level = tuple[0]
+    .DecorateWithLatestOf(lives, "lives").Subscribe(function(level) {
       var pos = level.maze.playerScorePos(player)
-      _.range(0, tuple[1].lives).forEach(function(index) {
+      _.range(0, level.lives.lives).forEach(function(index) {
         var image = PlayerImage(player).create(pos.add(Point(index * 20, 10)), 8, r)
         lives
           .Where(function(lives) { return lives.lives <= index + 1})
@@ -661,8 +660,9 @@ Rx.Observable.prototype.Multiply = function(times) {
 }
 Rx.Observable.prototype.DecorateWithLatestOf = function(stream, name) {
   return this.CombineWithLatestOf(stream, function(main, additional) {
-    main[name] = additional
-    return main
+    var clone = _.clone(main)
+    clone[name] = additional
+    return clone
   })
 }
 Rx.Observable.CombineAll = function(streams, combinator) {
