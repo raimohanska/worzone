@@ -195,9 +195,9 @@ function Score(player, messageQueue, r) {
     .StartWith(0)
     .Publish()
   messageQueue.plug(score.Select(function(points) { return { message : "score", player : player, score : points} } ))
-  messageQueue.ofType("level-started").Subscribe(function(level){
+  messageQueue.ofType("level-started").DecorateWithLatestOf(score, "score").Subscribe(function(level){
     var pos = level.maze.playerScorePos(player)
-    var scoreDisplay = r.text(pos.x, pos.y - 10, "?").attr({ fill : "#ff0"})
+    var scoreDisplay = r.text(pos.x, pos.y - 10, level.score).attr({ fill : "#ff0"})
     score.TakeUntil(level.levelEnd).Subscribe(function(points) { scoreDisplay.attr({ text : points }) })
     level.levelEnd.Subscribe(function(){ scoreDisplay.remove() })
   })          
