@@ -20,7 +20,7 @@ function Levels(messageQueue, targets, r) {
   var levelFinished = messageQueue.ofType("level-finished")
   var startGame = MessageQueue().plug(Keyboard().anyKey.Take(1))
   var startScreen = AsciiGraphic(startScreenData(), 13, 0, Point(50, 150)).render(r).attr({ fill : "#f80"})
-  startGame.Subscribe(function() { startScreen.remove() })
+  startGame.Subscribe(removeElements(startScreen))
   
   var levelStarting = levelFinished
     .Merge(startGame)
@@ -34,18 +34,17 @@ function Levels(messageQueue, targets, r) {
     })
   levelStarting.Subscribe(function() {
     var getReady = AsciiGraphic(getReadyData(), 13, 0, Point(50, 80)).render(r)
-    setTimeout(function() {  go = AsciiGraphic(goData(), 13, 0, Point(200, 170)).render(r) }, 2000)
-    setTimeout(function() {
-      getReady.remove()                                  
-      go.remove()
-    }, 4000)
+    setTimeout(function() { 
+      var go = AsciiGraphic(goData(), 13, 0, Point(200, 170)).render(r)
+      setTimeout(removeElements([getReady, go]), 2000) 
+    }, 2000)
   })    
     
   levels.Subscribe(function(level) {
     level.maze.draw(level.levelEnd, r)    
     var pos = level.maze.levelNumberPos()
     var text = r.text(pos.x, pos.y, "Level " + level.level).attr({ fill : "#FF0"})
-    level.levelEnd.Subscribe(function(){ text.remove() })    
+    level.levelEnd.Subscribe(removeElements(text))    
   })
   
   gameOver.CombineWithLatestOf(levels, latter).Subscribe(function(level){
@@ -187,7 +186,7 @@ function LivesDisplay(player, lives, messageQueue, r) {
         lives
           .Where(function(lives) { return lives.lives <= index + 1})
           .Merge(level.levelEnd)
-          .Subscribe(function(lives) { image.remove() })
+          .Subscribe(removeElements(image))
       })    
     })
 }
@@ -782,4 +781,8 @@ function print(x) { console.log(x) }
 function toConsole(stream, prefix) { stream.Subscribe( function(item) { console.log(prefix + ":" + item) })}
 function Rectangle(x, y, width, height) {
     return {x : x, y : y, width : width, height : height}
+}
+function removeElements(elements) {
+  return function() { toArray(elements).forEach(function(element){
+    element.remove()}) }
 }
