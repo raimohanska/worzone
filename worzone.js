@@ -18,8 +18,12 @@ $(function() {
 function Levels(messageQueue, targets, r) {
   var gameOver = messageQueue.ofType("gameover").Skip(1)
   var levelFinished = messageQueue.ofType("level-finished")
+  var startGame = Keyboard().anyKey.Take(1)
+  var startScreen = AsciiGraphic(startScreenData(), 13, 0, Point(50, 150)).render(r)
+  startGame.Subscribe(function() { startScreen.remove() })
+  
   var levelStarting = levelFinished
-    .StartWith(_)
+    .Merge(startGame)
     .Scan(0, function(prev, _) { return prev + 1 })
     .Select(function(level) { return { message : "level-starting", level : level} })
   var levels = levelStarting
@@ -426,7 +430,8 @@ function Keyboard() {
 	}	
 	return {
 		multiKeyState : multiKeyState,
-		keyDowns : keyDowns
+		keyDowns : keyDowns,
+		anyKey : allKeyDowns
 	}	
 }
 
