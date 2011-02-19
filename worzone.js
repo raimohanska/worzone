@@ -18,8 +18,8 @@ $(function() {
 function Levels(messageQueue, targets, r) {
   var gameOver = messageQueue.ofType("gameover").Skip(1)
   var levelFinished = messageQueue.ofType("level-finished")
-  var startGame = Keyboard().anyKey.Take(1)
-  var startScreen = AsciiGraphic(startScreenData(), 13, 0, Point(50, 150)).render(r)
+  var startGame = MessageQueue().plug(Keyboard().anyKey.Take(1))
+  var startScreen = AsciiGraphic(startScreenData(), 13, 0, Point(50, 150)).render(r).attr({ fill : "#f80"})
   startGame.Subscribe(function() { startScreen.remove() })
   
   var levelStarting = levelFinished
@@ -35,10 +35,10 @@ function Levels(messageQueue, targets, r) {
   levelStarting.Subscribe(function() {
     var getReady = AsciiGraphic(getReadyData(), 13, 0, Point(50, 80)).render(r)
     setTimeout(function() {  go = AsciiGraphic(goData(), 13, 0, Point(200, 170)).render(r) }, 2000)
-    levels.Take(1).Subscribe(function() {
+    setTimeout(function() {
       getReady.remove()                                  
       go.remove()
-    })
+    }, 4000)
   })    
     
   levels.Subscribe(function(level) {
