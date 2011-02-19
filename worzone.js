@@ -112,13 +112,13 @@ function Players(messageQueue, targets, r) {
 function Monsters(messageQueue, targets, r) {
   messageQueue.ofType("level-started").Subscribe(function(level) {
     var maze = level.maze
-    function burwor() { Burwor(maze, messageQueue, targets, r) }
-    function garwor() { Garwor(maze, messageQueue, targets, r) }
+    function burwor() { Burwor(level.level * 0.5 + 1, maze, messageQueue, targets, r) }
+    function garwor() { Garwor(level.level * 0.5 + 1, maze, messageQueue, targets, r) }
     _.range(0, 5).forEach(burwor)
     var monsterHit = messageQueue.ofType("hit")
       .Where(function (hit) { return hit.target.monster })
     var levelFinished = monsterHit
-      .Skip(15)
+      .Skip(1)
       .Select(always({ message : "level-finished"}))
       .Take(1)
     monsterHit
@@ -317,15 +317,15 @@ function FigureImage(imgPrefix, animCount, animCycle) {
   }
 }
 
-function Burwor(maze, messageQueue, targets, r) {
-  return Monster(FigureImage("burwor", 2, 10), 100, 5000, maze, messageQueue, targets, r)
+function Burwor(speed, maze, messageQueue, targets, r) {
+  return Monster(speed, FigureImage("burwor", 2, 10), 100, 5000, maze, messageQueue, targets, r)
 }
 
-function Garwor(maze, messageQueue, targets, r) {  
-  return Monster(FigureImage("garwor", 3, 2), 200, 2000, maze, messageQueue, targets, r)
+function Garwor(speed, maze, messageQueue, targets, r) {  
+  return Monster(speed, FigureImage("garwor", 3, 2), 200, 2000, maze, messageQueue, targets, r)
 }
 
-function Monster(image, points, fireInterval, maze, messageQueue, targets, r) {
+function Monster(speed, image, points, fireInterval, maze, messageQueue, targets, r) {
   var fire = ticker(fireInterval).Where( function() { return Math.random() < 0.1 })
   var direction = MessageQueue()
   function access(pos) { return maze.isAccessibleByMonster(pos, 16) }
@@ -333,7 +333,7 @@ function Monster(image, points, fireInterval, maze, messageQueue, targets, r) {
     return access(pos) && targets.select(function(target){ return target.player && target.inRange(pos, 100) }).length == 0
   })
   var monster = Figure(startPos, image, ControlInput(direction, fire), maze, access, messageQueue, r)
-  monster.speed = 2
+  monster.speed = speed
   monster.monster = true      
   monster.points = points
   direction.plug(monster.streams.position.SampledBy(gameTicker).Scan(left, function(current, status) {
