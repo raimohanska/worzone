@@ -19,7 +19,7 @@ function Levels(messageQueue, targets, r) {
   var gameOver = messageQueue.ofType("gameover").Skip(1)
   var levelFinished = messageQueue.ofType("level-finished")
   var startGame = MessageQueue().plug(Keyboard().anyKey.Take(1))
-  var startScreen = AsciiGraphic(startScreenData(), 13, 0, Point(50, 150)).render(r).attr({ fill : "#f80"})
+  var startScreen = AsciiGraphic(startScreenData(), 13, 0, Point(50, 150)).render(r).attr({ fill : "#F00"})
   startGame.Subscribe(removeElements(startScreen))
   
   var levelStarting = levelFinished
