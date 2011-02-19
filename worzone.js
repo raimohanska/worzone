@@ -569,8 +569,7 @@ function Maze(level) {
 		},
 		randomFreePos : function(filter) {
 		  while(true) {
-		    var blockPos = ascii.randomBlock()
-		    var pixelPos = ascii.blockCenter(blockPos)
+		    var pixelPos = ascii.blockCenter(ascii.randomBlock())
 		    if (filter(pixelPos)) return pixelPos
 	    }
 	  },
