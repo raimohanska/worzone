@@ -29,9 +29,8 @@ function Levels(messageQueue, targets, r) {
       return { message : "level-started", level : level.level, maze : Maze(level.level), levelEnd : levelEnd } 
     })
   levelStarting.Subscribe(function() {
-    var getReady = r.image(imgPath + "getready.png", 50, 80, 400, 100)
-    var go
-    setTimeout(function() {  go = r.image(imgPath + "go.png", 200, 200, 100, 90) }, 2000)
+    var getReady = AsciiGraphic(getReadyData(), 13, 0, Point(50, 80)).render(r)
+    setTimeout(function() {  go = AsciiGraphic(goData(), 13, 0, Point(200, 170)).render(r) }, 2000)
     levels.Take(1).Subscribe(function() {
       getReady.remove()                                  
       go.remove()
@@ -541,8 +540,8 @@ function Maze(level) {
 	  if (!objectRadiusY) objectRadiusY = objectRadiusX
 		var radiusX = objectRadiusX 
 		var radiusY = objectRadiusY
-		for (var x = ascii.toBlock(pos.x - radiusX); x <= ascii.toBlock(pos.x + radiusX); x++) 
-		  for (var y = ascii.toBlock(pos.y - radiusY); y <= ascii.toBlock(pos.y + radiusY); y++)
+		for (var x = ascii.toBlockX(pos.x - radiusX); x <= ascii.toBlockX(pos.x + radiusX); x++) 
+		  for (var y = ascii.toBlockY(pos.y - radiusY); y <= ascii.toBlockY(pos.y + radiusY); y++)
 		    if (!predicate(Point(x, y))) return false
 		return true  
 	}
@@ -573,14 +572,13 @@ function Maze(level) {
 	    }
 	  },
 	  draw : function(levelEnd, raphael) {
-      var elements = raphael.set()
-    	ascii.forEachBlock(function(block) { 
-    	  if (isWall(block)) { 
-    	    var corner = ascii.blockCorner(block)
-    	    var size = ascii.sizeOf(block)
-    	    elements.push(raphael.rect(corner.x, corner.y, size.x, size.y)
-    	      .attr({ stroke : "#008", fill : "#008"}))
-    	}})                            
+      var elements = ascii.renderWith(raphael, function(block) {
+      	  if (isWall(block)) { 
+      	    var corner = ascii.blockCorner(block)
+      	    var size = ascii.sizeOf(block)
+      	    return raphael.rect(corner.x, corner.y, size.x, size.y).attr({ stroke : "#008", fill : "#008"})
+      	  }
+      })
     	levelEnd.Subscribe(function() {
     	  elements.remove()
     	})
@@ -588,7 +586,9 @@ function Maze(level) {
 	}
 }
 
-function AsciiGraphic(data, blockSize, wall) {
+function AsciiGraphic(data, blockSize, wall, position) {
+	if (!wall) wall = 0
+	if (!position) position = Point(0, 0)
   var width = data[0].length
 	var height = data.length
 	var fullBlock = blockSize + wall
@@ -607,7 +607,7 @@ function AsciiGraphic(data, blockSize, wall) {
 	     var fullBlocks = Math.floor(block / 2)
 	     return fullBlocks * fullBlock + ((block % 2 == 1) ? wall : 0)
 	  }
-	  return Point(blockToPixel(blockPos.x), blockToPixel(blockPos.y))
+	  return Point(blockToPixel(blockPos.x) + position.x, blockToPixel(blockPos.y) + position.y)
 	}          
 	function blockCenter(blockPos) {          
 	  return blockCorner(blockPos).add(sizeOf(blockPos).times(.5))
@@ -622,8 +622,14 @@ function AsciiGraphic(data, blockSize, wall) {
     var wallToAdd = ((remainder >= wall) ? 1 : 0)
     return fullBlocks * 2 + wallToAdd
   }
+  function toBlockX(x) {
+    return toBlock(x - position.x)
+  }
+  function toBlockY(y) {
+    return toBlock(y - position.y)
+  }
 	function toBlocks(pixelPos) { 
-	  return Point(toBlock(pixelPos.x), toBlock(pixelPos.y))
+	  return Point(toBlockX(pixelPos.x), toBlockY(pixelPos.y))
 	}
 	function forEachBlock(fn) {
 		for (var x = 0; x < width; x++) {
@@ -637,14 +643,57 @@ function AsciiGraphic(data, blockSize, wall) {
   function randomBlock() {
     return Point(randomInt(width), randomInt(height))
   }
+  function render(r) {
+    return renderWith(r, function(block) {
+      if (!isChar(block, " "))
+        return r.text(blockCenter(block).x, blockCenter(block).y, charAt(block)).attr({ fill : "#f00", "font-family" : "Courier New, Courier", "font-size" : blockSize})
+    })
+  }
+  function renderWith(r, blockRenderer) {
+    var elements = r.set()
+  	forEachBlock(function(block) { 
+  	  var element = blockRenderer(block)
+  	  if (element) elements.push(element)
+  	})                            
+  	return elements
+  }
 	return {  isChar : isChar, 
-	          toBlock : toBlock, 
+	          toBlockX : toBlockX, 
+	          toBlockY : toBlockY,
 	          blockCorner : blockCorner,
 	          blockCenter : blockCenter,
 	          forEachBlock : forEachBlock,
 	          sizeOf : sizeOf,
-	          randomBlock : randomBlock }
+	          randomBlock : randomBlock ,
+	          render : render,
+	          renderWith : renderWith}
 }
+
+function getReadyData() { return [
+"  ____   _____  ______    ____    _____    __    ____    __  __  ",
+" ______  _____  ______    _____   _____   ____   _____   __  __  ",
+" __      __       __      __  __  __     __  __  __  __  __  __  ",
+" __      __       __      __  __  __     __  __  __  __  __  __  ",
+" __  __  _____    __      _____   _____  ______  __  __   ____   ",
+" __  __  _____    __      ____    _____  ______  __  __    __    ",
+" __  __  __       __      __ __   __     __  __  __  __    __    ",
+" __  __  __       __      __  __  __     __  __  __  __    __    ",
+" ______  _____    __      __  __  _____  __  __  _____     __    ",
+"  ____   _____    __      __  __  _____  __  __  ____      __    " 
+]}
+function goData() { return [
+"  ____    ____  ",
+" ______  ______ ",
+" __      __  __ ",
+" __      __  __ ",
+" __  __  __  __ ",
+" __  __  __  __ ",
+" __  __  __  __ ",
+" __  __  __  __ ",
+" ______  ______ ",
+"  ____    ____  " 
+]}
+
                               
 var delay = 50
 var left = Point(-1, 0), right = Point(1, 0), up = Point(0, -1), down = Point(0, 1)
