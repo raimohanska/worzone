@@ -530,8 +530,7 @@ function Maze(level) {
 
 	function findMazePos(character) {
     function blockThat(predicate) {
-  		return ascii.forEachBlock(function(x, y) { 
-  		  var blockPos = new Point(x, y) 
+  		return ascii.forEachBlock(function(blockPos) { 
   		  if (predicate(blockPos)) { return blockPos}
   		})
     }
@@ -575,8 +574,7 @@ function Maze(level) {
 	  },
 	  draw : function(levelEnd, raphael) {
       var elements = raphael.set()
-    	ascii.forEachBlock(function(x, y) { 
-    	  var block = Point(x, y) 
+    	ascii.forEachBlock(function(block) { 
     	  if (isWall(block)) { 
     	    var corner = ascii.blockCorner(block)
     	    var size = ascii.sizeOf(block)
@@ -630,7 +628,7 @@ function AsciiGraphic(data, blockSize, wall) {
 	function forEachBlock(fn) {
 		for (var x = 0; x < width; x++) {
 			for (var y = 0; y < height; y++) {
-				var result = fn(x, y)
+				var result = fn(Point(x, y))
 				if (result) 
 				  return result;
 			}
