@@ -520,12 +520,82 @@ var mazes = [
 
 
 function Maze(level) {
-  var data = mazes[level % 2]
+  var data = mazes[(level + 1) % 2]
 	var blockSize = 50
 	var wall = 5           
-	var fullBlock = blockSize + wall
-	var width = data[0].length
+  var ascii = AsciiGraphic(data, blockSize, wall)
+  
+	function isWall(blockPos) { return ascii.isChar(blockPos, "*") }
+	function isFree(blockPos) { return ascii.isChar(blockPos, "C ") }
+
+	function findMazePos(character) {
+    function blockThat(predicate) {
+  		return ascii.forEachBlock(function(x, y) { 
+  		  var blockPos = new Point(x, y) 
+  		  if (predicate(blockPos)) { return blockPos}
+  		})
+    }
+		return blockThat(function(blockPos) { return ascii.isChar(blockPos, character)})
+	}
+    
+  function accessible(pos, objectRadiusX, objectRadiusY, predicate) {
+	  if (!objectRadiusY) objectRadiusY = objectRadiusX
+		var radiusX = objectRadiusX 
+		var radiusY = objectRadiusY
+		for (var x = ascii.toBlock(pos.x - radiusX); x <= ascii.toBlock(pos.x + radiusX); x++) 
+		  for (var y = ascii.toBlock(pos.y - radiusY); y <= ascii.toBlock(pos.y + radiusY); y++)
+		    if (!predicate(Point(x, y))) return false
+		return true  
+	}
+	return {
+	  levelNumberPos : function() {
+	    return ascii.blockCenter(findMazePos("L"))
+	  },
+	  centerMessagePos : function() {
+	    return ascii.blockCenter(findMazePos("C"))
+	  },
+		playerStartPos : function(player) {
+			return ascii.blockCenter(findMazePos("" + player.id))
+		},      
+		playerScorePos : function(player) {
+		  var number = Number(player.id) + 4
+		  return ascii.blockCenter(findMazePos("" + number))
+		},
+		isAccessible : function(pos, objectRadiusX, objectRadiusY) {
+		  return accessible(pos, objectRadiusX, objectRadiusY, function(blockPos) { return !isWall(blockPos) })
+		},
+		isAccessibleByMonster : function(pos, objectRadiusX, objectRadiusY) {
+		  return accessible(pos, objectRadiusX, objectRadiusY, function(blockPos) { return isFree(blockPos) })
+		},
+		randomFreePos : function(filter) {
+		  while(true) {
+		    var blockPos = ascii.randomBlock()
+		    var pixelPos = ascii.blockCenter(blockPos)
+		    if (filter(pixelPos)) return pixelPos
+	    }
+	  },
+	  draw : function(levelEnd, raphael) {
+      var elements = raphael.set()
+    	ascii.forEachBlock(function(x, y) { 
+    	  var block = Point(x, y) 
+    	  if (isWall(block)) { 
+    	    var corner = ascii.blockCorner(block)
+    	    var size = ascii.sizeOf(block)
+    	    elements.push(raphael.rect(corner.x, corner.y, size.x, size.y)
+    	      .attr({ stroke : "#008", fill : "#008"}))
+    	}})                            
+    	levelEnd.Subscribe(function() {
+    	  elements.remove()
+    	})
+    }
+	}
+}
+
+function AsciiGraphic(data, blockSize, wall) {
+  var width = data[0].length
 	var height = data.length
+	var fullBlock = blockSize + wall
+	
 	function charAt(blockPos) {
 	  if (blockPos.y >= height || blockPos.x >= width || blockPos.x < 0 || blockPos.y < 0) return "X"
 		return data[blockPos.y][blockPos.x]
@@ -567,66 +637,16 @@ function Maze(level) {
 			}
 		}           		
   }
-	function findMazePos(character) {
-    function blockThat(predicate) {
-  		return forEachBlock(function(x, y) { 
-  		  if (predicate(x, y)) { return new Point(x, y) }
-  		})
-    }
-		return blockThat(function(x, y) { return (data[y][x] == character)})
-	}
-    
-  function accessible(pos, objectRadiusX, objectRadiusY, predicate) {
-	  if (!objectRadiusY) objectRadiusY = objectRadiusX
-		var radiusX = objectRadiusX 
-		var radiusY = objectRadiusY
-		for (var x = toBlock(pos.x - radiusX); x <= toBlock(pos.x + radiusX); x++) 
-		  for (var y = toBlock(pos.y - radiusY); y <= toBlock(pos.y + radiusY); y++)
-		    if (!predicate(Point(x, y))) return false
-		return true  
-	}
-	return {
-	  levelNumberPos : function() {
-	    return blockCenter(findMazePos("L"))
-	  },
-	  centerMessagePos : function() {
-	    return blockCenter(findMazePos("C"))
-	  },
-		playerStartPos : function(player) {
-			return blockCenter(findMazePos("" + player.id))
-		},      
-		playerScorePos : function(player) {
-		  var number = Number(player.id) + 4
-		  return blockCenter(findMazePos("" + number))
-		},
-		isAccessible : function(pos, objectRadiusX, objectRadiusY) {
-		  return accessible(pos, objectRadiusX, objectRadiusY, function(blockPos) { return !isWall(blockPos) })
-		},
-		isAccessibleByMonster : function(pos, objectRadiusX, objectRadiusY) {
-		  return accessible(pos, objectRadiusX, objectRadiusY, function(blockPos) { return isFree(blockPos) })
-		},
-		randomFreePos : function(filter) {
-		  while(true) {
-		    var blockPos = Point(randomInt(width), randomInt(height))
-		    var pixelPos = blockCenter(blockPos)
-		    if (filter(pixelPos)) return pixelPos
-	    }
-	  },
-	  draw : function(levelEnd, raphael) {
-      var elements = raphael.set()
-    	forEachBlock(function(x, y) { 
-    	  var block = Point(x, y) 
-    	  if (isWall(block)) { 
-    	    var corner = blockCorner(block)
-    	    var size = sizeOf(block)
-    	    elements.push(raphael.rect(corner.x, corner.y, size.x, size.y)
-    	      .attr({ stroke : "#008", fill : "#008"}))
-    	}})                            
-    	levelEnd.Subscribe(function() {
-    	  elements.remove()
-    	})
-    }
-	}
+  function randomBlock() {
+    return Point(randomInt(width), randomInt(height))
+  }
+	return {  isChar : isChar, 
+	          toBlock : toBlock, 
+	          blockCorner : blockCorner,
+	          blockCenter : blockCenter,
+	          forEachBlock : forEachBlock,
+	          sizeOf : sizeOf,
+	          randomBlock : randomBlock }
 }
                               
 var delay = 50
