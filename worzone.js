@@ -19,7 +19,7 @@ function Levels(messageQueue, targets, r) {
   var gameOver = messageQueue.ofType("gameover").Skip(1)
   var levelFinished = messageQueue.ofType("level-finished")
   var startGame = MessageQueue().plug(Keyboard().anyKey.Take(1))
-  var startScreen = AsciiGraphic(startScreenData(), 13, 0, Point(50, 150)).render(r).attr({ fill : "#F00"})
+  var startScreen = AsciiGraphic(startScreenData(), 7, 7, Point(50, 150)).render(r).attr({ fill : "#F00"})
   startGame.Subscribe(removeElements(startScreen))
   
   var levelStarting = levelFinished
@@ -33,9 +33,9 @@ function Levels(messageQueue, targets, r) {
       return { message : "level-started", level : level.level, maze : Maze(level.level), levelEnd : levelEnd } 
     })
   levelStarting.Subscribe(function() {
-    var getReady = AsciiGraphic(getReadyData(), 13, 0, Point(50, 80)).render(r)
+    var getReady = AsciiGraphic(getReadyData(), 7, 7, Point(30, 80)).render(r)
     setTimeout(function() { 
-      var go = AsciiGraphic(goData(), 13, 0, Point(200, 170)).render(r)
+      var go = AsciiGraphic(goData(), 7, 7, Point(200, 170)).render(r)
       setTimeout(removeElements([getReady, go]), 2000) 
     }, 2000)
   })    
@@ -591,7 +591,7 @@ function Maze(level) {
 }
 
 function AsciiGraphic(data, blockSize, wall, position) {
-	if (!wall) wall = 0
+	if (!wall) wall = blockSize
 	if (!position) position = Point(0, 0)
   var width = data[0].length
 	var height = data.length
@@ -650,7 +650,7 @@ function AsciiGraphic(data, blockSize, wall, position) {
   function render(r) {
     return renderWith(r, function(block) {
       if (!isChar(block, " "))
-        return r.text(blockCenter(block).x, blockCenter(block).y, charAt(block)).attr({ fill : "#f00", "font-family" : "Courier New, Courier", "font-size" : blockSize})
+        return r.text(blockCenter(block).x, blockCenter(block).y, charAt(block)).attr({ fill : "#f00", "font-family" : "Courier New, Courier", "font-size" : blockSize * 1.7})
     })
   }
   function renderWith(r, blockRenderer) {
