@@ -13,7 +13,30 @@ $(function() {
   $('#sound').click(function() { audio.toggle() })
   
   Levels(messageQueue, targets, r)  
+  var connector = Connector()
+  messageQueue.Subscribe(connector.send)
 })
+
+function Connector() {
+    var socket = new io.Socket();
+    var handlers = []
+    socket.on('connect', function() {
+        console.log("Connected to server")
+    })
+    socket.on('disconnect', function() {
+        console.log("Disconnect from server")
+    })
+    socket.on('message', function(messageString) {
+        var message = JSON.parse(messageString);
+        console.log("Message from server: " + message.message)
+        handlers.forEach(function(handler) {handler(message)})
+    });
+    socket.connect();
+    return {
+        addHandler : function(handler) {handlers.push(handler)},
+        send : function(message) {socket.send(message)}
+    }
+};
 
 function Levels(messageQueue, targets, r) {
   var gameOver = messageQueue.ofType("gameover").Skip(1)
