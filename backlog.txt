@@ -1,0 +1,22 @@
+Bugs
+
+- Runs slow in Firefox
+- Level does not get cleared in FF
+- Scores, Lives displays are reseted on each level
+- Sometimes man figure is detached from actual location
+- Monsters should be removed on Game Over too
+
+Features
+                                                     
+- Start screen with ASCII graphics
+- Game Over with ASCII graphics
+- more and eviler monsters for each level
+- better monster logic (garwor to follow players?)
+- player should be ejected from the starting point in 10 seconds and should not be able to go back
+- thorwors and whatnot
+
+Improvements
+
+- Animation for "man shooting"
+- Alpha channel for PNGs
+- PNGs to SVGs
