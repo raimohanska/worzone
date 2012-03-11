@@ -1,7 +1,3 @@
-MessageQueue
-  impl
-  rename to Bus
-
 New stuff:
   DecorateWithLatestOf->decorateWith
   CombineLatestAsArray->combineAll

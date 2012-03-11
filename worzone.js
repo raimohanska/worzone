@@ -1,7 +1,12 @@
 $(function() {
   var bounds = Rectangle(0, 0, 500, 450)
   var r = Raphael(20, 20, bounds.width, bounds.height);
-  var messageQueue = MessageQueue()
+  var messageQueue = new Bacon.Bus()
+  messageQueue.ofType = function(type) {
+    return messageQueue.filter(function(message) {
+      return message.message == type
+    })
+  }
   var targets = Targets(messageQueue)
 
   Monsters(messageQueue, targets, r)
@@ -319,7 +324,7 @@ function Garwor(speed, maze, messageQueue, targets, r) {
 
 function Monster(speed, image, points, fireInterval, maze, messageQueue, targets, r) {
   var fire = ticker(fireInterval).filter( function() { return Math.random() < 0.1 })
-  var direction = MessageQueue()
+  var direction = new Bacon.Bus()
   function access(pos) { return maze.isAccessibleByMonster(pos, 16) }
   var startPos = maze.randomFreePos(function(pos) {
     return access(pos) && targets.select(function(target){ return target.player && target.inRange(pos, 100) }).length == 0
@@ -420,55 +425,6 @@ function Keyboard() {
     keyDowns : keyDowns,
     anyKey : allKeyDowns
   }
-}
-
-function MessageQueue() {
-    function remove(xs, x) {
-       xs.splice(xs.indexOf(x), 1)
-    }
-    function Subscription(observable) {
-      var disposable
-      function cancel() { remove(subscriptions, subscription)}
-      function push(message) { messageQueue.push(message) }
-      function start() {
-        disposable = observable.onValue( push, cancel)
-      }
-      function stop() {
-        if (disposable) disposable.Dispose()
-      }
-      var subscription = {
-        start : start, stop : stop
-      }
-      subscriptions.push(subscription)
-      if (observers.length > 0) { start() }
-      return subscription;
-    }
-    var subscriptions = []
-    var observers = []
-    var messageQueue = Rx.Observable.Create(function(observer) {
-        observers.push(observer)
-        if (observers.length == 1) {
-          subscriptions.forEach(function(subscription) { subscription.start() })
-        }
-        return function() {
-          remove(observers, observer);
-          if (observers.length == 0) {
-            subscriptions.forEach(function(subscription) { subscription.stop() })
-          }
-        }
-    })
-    messageQueue.ofType = function(messageType) { return messageQueue.filter(function(message) { return message.message == messageType})}
-    messageQueue.push = function (message) {
-        observers.map(identity).forEach(function(observer) {
-            observer.OnNext(message)
-        });
-        return messageQueue
-    }
-    messageQueue.plug = function (observable) {
-        Subscription(observable)
-        return messageQueue
-    }
-    return messageQueue
 }
 
 var mazes = [
