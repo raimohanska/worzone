@@ -18,7 +18,7 @@ $(function() {
 function Levels(messageQueue, targets, r) {
   var gameOver = messageQueue.ofType("gameover").skip(1)
   var levelFinished = messageQueue.ofType("level-finished")
-  var startGame = MessageQueue().plug(Keyboard().anyKey.take(1))
+  var startGame = Keyboard().anyKey.take(1)
   var startScreen = AsciiGraphic(startScreenData(), 7, 7, Point(50, 150)).render(r).attr({ fill : "#F00"})
   startGame.onValue(removeElements(startScreen))
 
@@ -67,7 +67,7 @@ function Levels(messageQueue, targets, r) {
 
 function GameSounds(messageQueue, audio) {
   function sequence(delay, count) {
-    return ticker(delay).scan(1, function(counter, _) { return counter % count + 1} )
+    return ticker(delay).scan(1, function(counter, _) { return counter % count + 1} ).changes()
   }
   levelStarted = messageQueue.ofType("level-started").map(always(true))
     .merge(messageQueue.ofType("level-finished").map(always(false)))
@@ -389,8 +389,7 @@ function Figure(startPos, image, controlInput, maze, access, messageQueue, r) {
     messageQueue.plug(start)
     messageQueue.plug(fire)
     messageQueue.plug(removed)
-    var currentPos = LatestValueHolder(position)
-    figure.inRange = function(pos, range) { return currentPos.value().subtract(pos).getLength() < range + radius }
+    figure.inRange = function(pos, range) { return position.currentValue().subtract(pos).getLength() < range + radius }
     messageQueue.push({ message : "create", target : figure })
     figure.streams = {
       position : status

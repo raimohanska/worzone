@@ -1,17 +1,7 @@
-Käyty läpi : riville 718
-
-CombineLatest
-LatestValueHolder
 MessageQueue
-  uses
   impl
-ticker
-  impl
-GameSounds.sequence
-  re-impl
+  rename to Bus
 
-Look for:
-  Rx.Observable*
 New stuff:
   DecorateWithLatestOf->decorateWith
   CombineLatestAsArray->combineAll
@@ -24,3 +14,4 @@ New stuff:
     .filter
     .startWith
     .takeUntil
+    .currentValue
