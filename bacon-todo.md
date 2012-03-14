@@ -1,5 +1,4 @@
 New stuff:
-  DecorateWithLatestOf->decorateWith
   CombineLatestAsArray->combineAll
   EventStream
     skip

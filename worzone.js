@@ -183,7 +183,7 @@ function Player(id, keyMap, targets, messageQueue, r) {
 
 function LivesDisplay(player, lives, messageQueue, r) {
   messageQueue.ofType("level-started")
-    .DecorateWithLatestOf(lives, "lives").onValue(function(level) {
+    .decorateWith("lives", lives).onValue(function(level) {
       var pos = level.maze.playerScorePos(player)
       _.range(0, level.lives.lives - 1).forEach(function(index) {
         var image = PlayerImage(player).create(pos.add(Point(index * 20, 10)), 8, r)
@@ -201,7 +201,7 @@ function Score(player, messageQueue, r) {
     .map(function(hit) { return hit.target.points })
     .scan(0, function(current, delta) { return current + delta })
   messageQueue.plug(score.map(function(points) { return { message : "score", player : player, score : points} } ))
-  messageQueue.ofType("level-started").DecorateWithLatestOf(score, "score").onValue(function(level){
+  messageQueue.ofType("level-started").decorateWith("score", score).onValue(function(level){
     var pos = level.maze.playerScorePos(player)
     var scoreDisplay = r.text(pos.x, pos.y - 10, level.score).attr({ fill : "#ff0"})
     score.takeUntil(level.levelEnd).onValue(function(points) { scoreDisplay.attr({ text : points }) })
@@ -670,13 +670,6 @@ function first(xs) { return xs ? xs[0] : undefined}
 function latter (_, second) { return second }
 function both (first, second) { return [first, second] }
 function extractProperty(property) { return function(x) { return x.property } }
-Rx.Observable.prototype.DecorateWithLatestOf = function(stream, name) {
-  return this.CombineWithLatestOf(stream, function(main, additional) {
-    var clone = _.clone(main)
-    clone[name] = additional
-    return clone
-  })
-}
 Rx.Observable.CombineAll = function(streams, combinator) {
   var stream = streams[0]
   for (var i = 1; i < streams.length; i++) {
