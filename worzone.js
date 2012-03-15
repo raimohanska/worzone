@@ -77,8 +77,9 @@ function GameSounds(messageQueue, audio) {
   levelStarted = messageQueue.ofType("level-started").map(always(true))
     .merge(messageQueue.ofType("level-finished").map(always(false)))
     .toProperty(false)
+  levelCurrentlyPlayed = Bacon.latestValue(levelStarted)
   sequence(500, 3)
-    .filterWithProperty(levelStarted)
+    .filter(levelCurrentlyPlayed)
     .onValue(function(counter) { audio.playSound("move" + counter)() })
   messageQueue.ofType("start")
     .filter(function (start) { return start.object.player })
@@ -366,8 +367,8 @@ function Figure(startPos, image, controlInput, maze, access, messageQueue, r) {
     var removed = hit.merge(levelFinished).take(1).map(always({ message : "remove", object : figure}))
 
     var direction = controlInput.directionInput.takeUntil(removed)
-    var latestDirection = direction.filter(identity).startWith(left)
-    var movements = direction.sampledBy(gameTicker).filter(identity).takeUntil(removed)
+    var latestDirection = direction.filter(identity).toProperty(left)
+    var movements = direction.toProperty().sampledBy(gameTicker).filter(identity).takeUntil(removed)
     var position = movements.scan(startPos, Movement(figure, access).moveIfPossible)
 
     position.onValue(function (pos) { figure.attr({x : pos.x - radius, y : pos.y - radius}) })
@@ -674,7 +675,7 @@ function toArray(x) { return !x ? [] : (_.isArray(x) ? x : [x])}
 var gameTicker = ticker(delay)
 var bulletTicker = ticker(delay/20)
 function ticker(interval) {
-  Bacon.interval(interval)
+  return Bacon.interval(interval)
 }
 function always(value) { return function(_) { return value } }
 function atMostOne(array) { return array.length <= 1 }

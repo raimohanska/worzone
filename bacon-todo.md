@@ -8,4 +8,3 @@ New stuff:
     .filter
     .startWith
     .takeUntil
-    .currentValue
