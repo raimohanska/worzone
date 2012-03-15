@@ -1,5 +1,4 @@
 New stuff:
-  CombineLatestAsArray->combineAll
   EventStream
     skip
     skipUntil

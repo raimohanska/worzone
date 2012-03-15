@@ -418,7 +418,7 @@ function Keyboard() {
   }
   function multiKeyState(keyMap) {
     var streams = keyMap.map(function(pair) { return keyState(pair[0], pair[1]) })
-    return Rx.Observable.CombineLatestAsArray(streams)
+    return Bacon.combineAsArray(streams)
   }
   return {
     multiKeyState : multiKeyState,
@@ -670,18 +670,7 @@ function first(xs) { return xs ? xs[0] : undefined}
 function latter (_, second) { return second }
 function both (first, second) { return [first, second] }
 function extractProperty(property) { return function(x) { return x.property } }
-Rx.Observable.CombineAll = function(streams, combinator) {
-  var stream = streams[0]
-  for (var i = 1; i < streams.length; i++) {
-    stream = combinator(stream, streams[i])
-  }
-  return stream;
-}
-Rx.Observable.CombineLatestAsArray = function(streams) {
-  return Rx.Observable.CombineAll(streams, function(s1, s2) { return s1.CombineLatest(s2, concatArrays)})
-}
 function toArray(x) { return !x ? [] : (_.isArray(x) ? x : [x])}
-function concatArrays(a1, a2) { return toArray(a1).concat(toArray(a2)) }
 var gameTicker = ticker(delay)
 var bulletTicker = ticker(delay/20)
 function ticker(interval) {
