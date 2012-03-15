@@ -9,7 +9,7 @@ $(function() {
   }
   var targets = Targets(messageQueue)
 
-  //Monsters(messageQueue, targets, r)
+  Monsters(messageQueue, targets, r)
   Players(messageQueue, targets, r)
 
   var audio = Audio()
