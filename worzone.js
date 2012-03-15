@@ -294,7 +294,7 @@ function FigureImage(imgPrefix, animCount, animCycle) {
       return r.image(imgPrefix + "-left-1.png", startPos.x - radius, startPos.y - radius, radius * 2, radius * 2)
     },
     animate : function(figure, status) {
-      var animationSequence = status.bufferWithCount(animCycle).scan(1, function(prev, _) { return prev % animCount + 1})
+      var animationSequence = status.changes().bufferWithCount(animCycle).scan(1, function(prev, _) { return prev % animCount + 1})
       var animation = status.combine(animationSequence, function(status, index) {
         return { image :  imgPrefix + "-left-" + index + ".png", dir : status.dir }
       })
