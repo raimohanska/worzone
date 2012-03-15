@@ -239,7 +239,7 @@ function Bullet(startPos, shooter, velocity, maze, targets, targetFilter, messag
   var radius = 3
   var bullet = r.circle(startPos.x, startPos.y, radius).attr({fill: "#f00"})
   bullet.radius = radius
-  var movements = bulletTicker.map(function(_) {return velocity})
+  var movements = gameTicker.multiply(20).map(function(_) {return velocity})
   var unlimitedPosition = movements
     .scan(startPos, function(pos, move) { return pos.add(move) })
   var collision = unlimitedPosition.changes().filter(function(pos) { return !maze.isAccessible(pos, radius, radius) }).take(1)
@@ -674,7 +674,6 @@ function both (first, second) { return [first, second] }
 function extractProperty(property) { return function(x) { return x.property } }
 function toArray(x) { return !x ? [] : (_.isArray(x) ? x : [x])}
 var gameTicker = ticker(delay)
-var bulletTicker = ticker(delay/20)
 function ticker(interval) {
   return Bacon.interval(interval)
 }
@@ -688,4 +687,16 @@ function Rectangle(x, y, width, height) {
 function removeElements(elements) {
   return function() { toArray(elements).forEach(function(element){
     element.remove()}) }
+}
+Bacon.EventStream.prototype.multiply = function(times) {
+  return this.withHandler(function(event) {
+    if (event.isEnd())
+      this.push(event)
+    else
+      for (var i = 0; i < times; i++) {
+        var reply = this.push(event)
+        if (reply == Bacon.noMore) return reply
+      }
+      return Bacon.more
+  })
 }
