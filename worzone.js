@@ -9,7 +9,7 @@ $(function() {
   }
   var targets = Targets(messageQueue)
 
-  Monsters(messageQueue, targets, r)
+  //Monsters(messageQueue, targets, r)
   Players(messageQueue, targets, r)
 
   var audio = Audio()
@@ -188,7 +188,7 @@ function LivesDisplay(player, lives, messageQueue, r) {
       var pos = level.maze.playerScorePos(player)
       _.range(0, level.lives.lives - 1).forEach(function(index) {
         var image = PlayerImage(player).create(pos.add(Point(index * 20, 10)), 8, r)
-        lives
+        lives.changes()
           .filter(function(lives) { return lives.lives <= index + 1})
           .merge(level.levelEnd)
           .onValue(removeElements(image))
@@ -395,7 +395,8 @@ function Figure(startPos, image, controlInput, maze, access, messageQueue, r) {
     messageQueue.plug(start)
     messageQueue.plug(fire)
     messageQueue.plug(removed)
-    figure.inRange = function(pos, range) { return position.currentValue().subtract(pos).getLength() < range + radius }
+    var currentPosition = Bacon.latestValue(position)
+    figure.inRange = function(pos, range) { return currentPosition().subtract(pos).getLength() < range + radius }
     messageQueue.push({ message : "create", target : figure })
     figure.streams = {
       position : status
