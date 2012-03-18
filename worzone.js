@@ -261,7 +261,7 @@ function PlayerImage(player) {
 }
 
 function PlayerFigure(player, maze, messageQueue, targets, r) {
-  var directionInput = Keyboard().multiKeyState(player.keyMap.directionKeyMap).map(first).distinctUntilChanged()
+  var directionInput = Keyboard().multiKeyState(player.keyMap.directionKeyMap).map(first)
   var fireInput = Keyboard().keyDowns(player.keyMap.fireKey)
   var controlInput = ControlInput(directionInput, fireInput)
   var startPos = maze.playerStartPos(player)
@@ -416,7 +416,7 @@ function Keyboard() {
   }
   function keyState(keyCode, value) {
     return keyDowns(keyCode).map(always([value])).
-      merge(keyUps(keyCode).map(always([]))).toProperty([])
+      merge(keyUps(keyCode).map(always([]))).toProperty([]).distinctUntilChanged()
   }
   function multiKeyState(keyMap) {
     var streams = keyMap.map(function(pair) { return keyState(pair[0], pair[1]) })
