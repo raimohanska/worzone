@@ -261,7 +261,7 @@ function PlayerImage(player) {
 }
 
 function PlayerFigure(player, maze, messageQueue, targets, r) {
-  var directionInput = Keyboard().multiKeyState(player.keyMap.directionKeyMap).map(first)
+  var directionInput = Keyboard().multiKeyState(player.keyMap.directionKeyMap).map(first).distinctUntilChanged()
   var fireInput = Keyboard().keyDowns(player.keyMap.fireKey)
   var controlInput = ControlInput(directionInput, fireInput)
   var startPos = maze.playerStartPos(player)
