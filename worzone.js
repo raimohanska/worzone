@@ -320,7 +320,7 @@ function Burwor(speed, maze, messageQueue, targets, r) {
 }
 
 function Garwor(speed, maze, messageQueue, targets, r) {
-  return Monster(speed, FigureImage("garwor", 3, 2), 200, 2000, maze, messageQueue, targets, r)
+  return Monster(speed, FigureImage("garwor", 3, 6), 200, 2000, maze, messageQueue, targets, r)
 }
 
 function Monster(speed, image, points, fireInterval, maze, messageQueue, targets, r) {
