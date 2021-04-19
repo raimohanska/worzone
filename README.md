@@ -7,7 +7,7 @@ this first with RxJs (Reactive Extensions of Javascript) but lately I
 wrote my own FRP framework, [bacon.js](http://github.com/raimohanska/bacon.js),
 and converted Worzone to use that instead.
 
-See the [online demo](http://juhajasatu.com/worzone/).
+See the [online demo](https://raimohanska.github.io/worzone/).
 
 I have described the basic ideas in my blog posting [Game Programming With
 RxJs](http://nullzzz.blogspot.com/2011/02/game-programming-with-rx-js.html).
